@@ -11,12 +11,12 @@ import android.util.Log;
 public class FileIndex {
 	private static String TAG = "com.bmw.android.androidindexer.PDFIndex";
 	private String filename;
-	private ArrayList<HashMap<String, Word>> words;
+	private HashMap<String, Word> words;
 	private int pages;
 	private int indexed = 0;
 	
 	public FileIndex() {
-		this.words = new ArrayList<HashMap<String, Word>>();
+		this.words = new HashMap<String, Word>();
 	}
 	
 	public FileIndex(String filename){
@@ -24,7 +24,7 @@ public class FileIndex {
 		this.filename = filename;
 	}
 	
-	public FileIndex(ArrayList<HashMap<String, Word>> words, String filename){
+	public FileIndex(HashMap<String, Word> words, String filename){
 		this(filename);
 		this.words = words;
 		this.pages = words.size();
@@ -74,7 +74,7 @@ public class FileIndex {
 			str = key;
 			Log.i(TAG, key);
 			for (int i = start; i < stop; i++) {
-				key = value.next.get(i);
+				key = value.next.get(i).toString();
 				value = tmp.get(value.next.get(i));
 				if(key == null || value == null){
 					return str;
@@ -96,11 +96,11 @@ public class FileIndex {
 		this.words.set(page, words);
 	}
 
-	public ArrayList<HashMap<String, Word>> getWords() {
+	public HashMap<String, Word> getWords() {
 		return words;
 	}
 
-	public void setWords(ArrayList<HashMap<String, Word>> words) {
+	public void setWords(HashMap<String, Word> words) {
 		this.words = words;
 		if(words != null){
 			this.pages = words.size();

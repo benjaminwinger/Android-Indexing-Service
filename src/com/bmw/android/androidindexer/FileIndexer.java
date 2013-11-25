@@ -96,7 +96,7 @@ public class FileIndexer {
 		return this.index;
 	}
 	
-	public void writeIndex(){
+	public void writeIndexz(){
 		try {
 			new KryoWrapper().WriteBuffered(index.getWords(),
 					FileIndexer.getFileDir(index.getFilename()));
