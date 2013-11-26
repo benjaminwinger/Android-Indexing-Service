@@ -2,6 +2,7 @@ package com.bmw.android.indexservice;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -237,11 +238,16 @@ public class SearchService extends Service {
 			if (search.length == 1) {
 				Set<Entry<String, Word>> words = index.getWords().entrySet();
 				for (Entry<String, Word> e : words) {
-					if (e.getKey().contains(search[0])) {
-						for (Next n : e.getValue().next.values()) {
-							results[n.page] = true;
+					Collection<Next> tmpCol = e.getValue().next.values();
+					for(Next next : tmpCol){
+						if(!results[next.page]){
+							if (e.getKey().contains(search[0])) {
+								for (Next n : e.getValue().next.values()) {
+									results[n.page] = true;
+									Log.i(TAG, "Found at Page: " + n.page);
+								}
+							}
 						}
-						break;
 					}
 				}
 			} else {
@@ -256,7 +262,6 @@ public class SearchService extends Service {
 							for (Entry<Integer, Next> entry : curr) {
 								if (entry.getValue().word.startsWith(search[1])) {
 									results[entry.getValue().page] = true;
-									break;
 								}
 							}
 						} else {
@@ -271,7 +276,6 @@ public class SearchService extends Service {
 											index.getWord(entry.getValue().word),
 											entry.getKey() + 1)) {
 										results[entry.getValue().page] = true;
-										break;
 									}
 								}
 							}
