@@ -3,8 +3,8 @@ package com.bmw.android.androidindexer;
 import java.io.Serializable;
 
 public class Next implements Serializable {
-	String word;
-	int page;
+	public String word;
+	public int page;
 
 	public Next(){
 		

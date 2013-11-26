@@ -34,9 +34,8 @@ public class FileIndexer {
 	public FileIndex loadIndex() {
 		try {
 			if (new File(index.getFilename()).exists()) {
-				this.index.setWords(new KryoWrapper().ReadBuffered(FileIndexer
+				this.index = (new KryoWrapper().ReadBuffered(FileIndexer
 						.getFileDir(index.getFilename())));
-				this.index.setIndexed(this.index.getWords().size());
 			}
 			if (this.listener != null) {
 				this.listener.indexLoaded();
@@ -59,12 +58,14 @@ public class FileIndexer {
 			}
 		}
 		String text = "";
+		int pos = 0;
+		HashMap<String, Word> indexed = new HashMap<String, Word>();
 		for (int i = 0; i < contents.size(); i++) {
 			text = contents.get(i);
 			Log.i("PDF", "indexing: Page " + i);
 			StringTokenizer tokens = new StringTokenizer(text);
 			ArrayList<String> words = new ArrayList<String>();
-			HashMap<String, Word> indexed = new HashMap<String, Word>();
+			
 			while (tokens.hasMoreTokens()) {
 				words.add(tokens.nextToken());
 			}
@@ -75,30 +76,29 @@ public class FileIndexer {
 					found = true;
 					if (j < words.size() - 1) {
 						String next = words.get(j + 1);
-						temp.addNext(next, j);
+						temp.addNext(next, i, j);
 					}
 				}
 				if (!found) {
 					temp = new Word();
 					if (j < words.size() - 2) {
 						String next = words.get(j + 1);
-						temp.addNext(next, j);
+						temp.addNext(next, i, j);
 					}
 					indexed.put(words.get(j), temp);
 				}
 			}
-			this.index.setWordsForPage(indexed, i);
-			this.index.setIndexed(i + 1);
 		}
+		this.index.setWords(indexed, contents.size());
 		if (this.listener != null) {
 			this.listener.indexingCompleted();
 		}
 		return this.index;
 	}
 	
-	public void writeIndexz(){
+	public void writeIndex(){
 		try {
-			new KryoWrapper().WriteBuffered(index.getWords(),
+			new KryoWrapper().WriteBuffered(index,
 					FileIndexer.getFileDir(index.getFilename()));
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

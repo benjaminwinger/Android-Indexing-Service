@@ -16,7 +16,7 @@ import com.esotericsoftware.kryo.io.Output;
 public class KryoWrapper {
 	private Kryo kryo = new Kryo(); // version 2.x
 
-	public void WriteBuffered(ArrayList<HashMap<String, Word>> test, FileOutputStream os)
+	public void WriteBuffered(FileIndex test, FileOutputStream os)
 			throws IOException {
 		Output output = null;
 		try {
@@ -29,7 +29,7 @@ public class KryoWrapper {
 		}
 	}
 	
-	public void WriteBuffered(ArrayList<HashMap<String, Word>> test, String fileName)
+	public void WriteBuffered(FileIndex test, String fileName)
 			throws IOException {
 		Output output = null;
 		try {
@@ -44,15 +44,15 @@ public class KryoWrapper {
 		}
 	}
 
-	public ArrayList<HashMap<String, Word>> ReadBuffered(String fileName)
+	public FileIndex ReadBuffered(String fileName)
 			throws IOException {
-		ArrayList<HashMap<String, Word>> index = null;
+		FileIndex index = null;
 		Input input = null;
 		try {
 			RandomAccessFile raf = new RandomAccessFile(fileName, "rw");
 			input = new Input(new FileInputStream(raf.getFD()), 8*1024*1024);
 			kryo.register(Word.class);
-			index = kryo.readObject(input, ArrayList.class);
+			index = kryo.readObject(input, FileIndex.class);
 		} catch(Exception e){
 			e.printStackTrace();
 		}

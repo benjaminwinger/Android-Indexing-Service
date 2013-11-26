@@ -13,6 +13,7 @@ import android.util.Log;
 
 import com.bmw.android.androidindexer.FileIndex;
 import com.bmw.android.androidindexer.FileIndexer;
+import com.bmw.android.androidindexer.Next;
 import com.bmw.android.androidindexer.Word;
 import com.bmw.android.indexdata.Result;
 
@@ -49,8 +50,9 @@ public class SearchService extends Service {
 		this.sm = new SearchManager();
 	}
 
-	public void buildIndex(String filePath, List<String> text, int page, int maxPage) {
-		if(page == 0){
+	public void buildIndex(String filePath, List<String> text, int page,
+			int maxPage) {
+		if (page == 0) {
 			this.text.clear();
 		}
 		if (page + text.size() != maxPage) {
@@ -62,8 +64,8 @@ public class SearchService extends Service {
 				final FileIndexer indexer = new FileIndexer(filePath,
 						this.getApplicationContext());
 				tmpIndex = indexer.buildIndex(this.text, filePath);
-				new Thread(new Runnable(){
-					public void run(){
+				new Thread(new Runnable() {
+					public void run() {
 						indexer.writeIndex();
 					}
 				}).start();
@@ -149,65 +151,61 @@ public class SearchService extends Service {
 				search[j] = search[j].toLowerCase();
 			}
 			ArrayList<Result> results = new ArrayList<Result>();
-			for (int page = 0; page < index.getPageCount(); page++) {
-				if (search.length == 1) {
-					Set<Entry<String, Word>> words = index
-							.getWordsForPage(page).entrySet();
-					for (Entry<String, Word> e : words) {
-						if (e.getKey().contains(search[0])) {
-							Set<Entry<Integer, String>> curr = e.getValue().next
-									.entrySet();
-							for (Entry<Integer, String> entry : curr) {
-								results.add(new Result(page, this.getResult(
-										index, page, entry.getKey(), 1,
-										variance)));
-							}
+			if (search.length == 1) {
+				Set<Entry<String, Word>> words = index.getWords().entrySet();
+				for (Entry<String, Word> e : words) {
+					if (e.getKey().contains(search[0])) {
+						Set<Entry<Integer, Next>> curr = e.getValue().next
+
+						.entrySet();
+						for (Entry<Integer, Next> entry : curr) {
+							results.add(new Result(entry.getValue().page, this
+									.getResult(index, entry.getValue().page,
+											entry.getKey(), 1, variance)));
 						}
 					}
-				} else {
-					Set<String> words = index.getWordsForPage(page).keySet();
-					int location = -1;
-					for (String w : words) {
-						if (w.endsWith((search[0]))) {
-							Word currentWord = index.getWordsForPage(page).get(
-									w);
-							if (search.length == 2) {
-								Set<Entry<Integer, String>> curr = currentWord.next
-										.entrySet();
-								for (Entry<Integer, String> entry : curr) {
-									if (entry.getValue().startsWith(search[1])) {
+				}
+			} else {
+				Set<String> words = index.getWords().keySet();
+				int location = -1;
+				for (String w : words) {
+					if (w.endsWith((search[0]))) {
+						Word currentWord = index.getWords().get(w);
+						if (search.length == 2) {
+							Set<Entry<Integer, Next>> curr = currentWord.next
+									.entrySet();
+							for (Entry<Integer, Next> entry : curr) {
+								if (entry.getValue().word.startsWith(search[1])) {
+									location = entry.getKey();
+									results.add(new Result(
+											entry.getValue().page,
+											this.getResult(index,
+													entry.getValue().page,
+													location, search.length,
+													variance)));
+								}
+							}
+						} else {
+							Set<Entry<Integer, Next>> curr = currentWord.next
+									.entrySet();
+							for (Entry<Integer, Next> entry : curr) {
+								if (entry.getValue().equals(search[1])) {
+									if (this.matchesString(index, search, 2, index
+											.getWord(entry.getValue().word),
+											entry.getKey() + 1)) {
 										location = entry.getKey();
+
 										results.add(new Result(
-												page,
-												this.getResult(index, page,
+												entry.getValue().page,
+												this.getResult(index,
+														entry.getValue().page,
 														location,
 														search.length, variance)));
-									}
-								}
-							} else {
-								Set<Entry<Integer, String>> curr = currentWord.next
-										.entrySet();
-								for (Entry<Integer, String> entry : curr) {
-									if (entry.getValue().equals(search[1])) {
-										if (this.matchesString(index, page,
-												search, 2,
-												index.getWord(entry.getValue(),
-														page),
-												entry.getKey() + 1)) {
-											location = entry.getKey();
 
-											results.add(new Result(page, this
-													.getResult(index, page,
-															location,
-															search.length,
-															variance)));
-
-										}
 									}
 								}
 							}
 						}
-
 					}
 
 				}
@@ -236,45 +234,44 @@ public class SearchService extends Service {
 				search[j] = search[j].toLowerCase();
 			}
 			boolean[] results = new boolean[index.getPageCount()];
-			for (int page = 0; page < index.getPageCount(); page++) {
-				if (search.length == 1) {
-					Set<Entry<String, Word>> words = index
-							.getWordsForPage(page).entrySet();
-					for (Entry<String, Word> e : words) {
-						if (e.getKey().contains(search[0])) {
-							results[page] = true;
-							break;
+			if (search.length == 1) {
+				Set<Entry<String, Word>> words = index.getWords().entrySet();
+				for (Entry<String, Word> e : words) {
+					if (e.getKey().contains(search[0])) {
+						for (Next n : e.getValue().next.values()) {
+							results[n.page] = true;
 						}
+						break;
 					}
-				} else {
-					Set<String> words = index.getWordsForPage(page).keySet();
-					int location = -1;
-					for (String w : words) {
-						if (w.endsWith((search[0]))) {
-							Word currentWord = index.getWordsForPage(page).get(
-									w);
-							if (search.length == 2) {
-								Set<Entry<Integer, String>> curr = currentWord.next
-										.entrySet();
-								for (Entry<Integer, String> entry : curr) {
-									if (entry.getValue().startsWith(search[1])) {
-										results[page] = true;
-										break;
-									}
+				}
+			} else {
+				Set<String> words = index.getWords().keySet();
+				int location = -1;
+				for (String w : words) {
+					if (w.endsWith((search[0]))) {
+						Word currentWord = index.getWords().get(w);
+						if (search.length == 2) {
+							Set<Entry<Integer, Next>> curr = currentWord.next
+									.entrySet();
+							for (Entry<Integer, Next> entry : curr) {
+								if (entry.getValue().word.startsWith(search[1])) {
+									results[entry.getValue().page] = true;
+									break;
 								}
-							} else {
-								Set<Entry<Integer, String>> curr = currentWord.next
-										.entrySet();
-								for (Entry<Integer, String> entry : curr) {
-									if (entry.getValue().equals(search[1])) {
-										if (this.matchesString(index, page,
-												search, 2,
-												index.getWord(entry.getValue(),
-														page),
-												entry.getKey() + 1)) {
-											results[page] = true;
-											break;
-										}
+							}
+						} else {
+							Set<Entry<Integer, Next>> curr = currentWord.next
+									.entrySet();
+							for (Entry<Integer, Next> entry : curr) {
+								if (entry.getValue().equals(search[1])) {
+									if (this.matchesString(
+											index,
+											search,
+											2,
+											index.getWord(entry.getValue().word),
+											entry.getKey() + 1)) {
+										results[entry.getValue().page] = true;
+										break;
 									}
 								}
 							}
@@ -286,14 +283,14 @@ public class SearchService extends Service {
 			return results;
 		}
 
-		private boolean matchesString(FileIndex index, int page,
-				String[] search, int searchPos, Word w, int position) {
+		private boolean matchesString(FileIndex index, String[] search,
+				int searchPos, Word w, int position) {
 			if (searchPos >= search.length) {
 				return true;
 			}
-			String next = w.next.get(position);
+			Next next = w.next.get(position);
 			if (searchPos == search.length - 1) {
-				if (!next.startsWith(search[searchPos])) {
+				if (!next.word.startsWith(search[searchPos])) {
 					return false;
 				}
 			} else {
@@ -301,9 +298,9 @@ public class SearchService extends Service {
 					return false;
 				}
 			}
-			Word tmpWd = index.getWord(next, page);
-			return this.matchesString(index, page, search, searchPos + 1,
-					tmpWd, position + 1);
+			Word tmpWd = index.getWord(next.word);
+			return this.matchesString(index, search, searchPos + 1, tmpWd,
+					position + 1);
 		}
 
 		private String getResult(FileIndex index, int page, int pos, int len,
