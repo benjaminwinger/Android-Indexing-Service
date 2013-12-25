@@ -1,11 +1,9 @@
 package com.bmw.android.indexservice;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
+
+import org.apache.lucene.document.Document;
 
 import android.app.Service;
 import android.content.Intent;
@@ -14,14 +12,17 @@ import android.util.Log;
 
 import com.bmw.android.androidindexer.FileIndex;
 import com.bmw.android.androidindexer.FileIndexer;
+import com.bmw.android.androidindexer.FileSearcher;
 import com.bmw.android.androidindexer.Next;
 import com.bmw.android.androidindexer.Word;
 import com.bmw.android.indexdata.Result;
 
 public class SearchService extends Service {
 	private static final String TAG = "com.bmw.android.indexservice.SearchService";
-	private FileIndex index;
 	private SearchManager sm;
+	private FileSearcher searcher;
+	private String path;
+	private int pages;
 	private ArrayList<String> text = new ArrayList<String>();
 
 	// private final IBinder mBinder = new LocalBinder();
@@ -53,6 +54,7 @@ public class SearchService extends Service {
 
 	public void buildIndex(String filePath, List<String> text, int page,
 			int maxPage) {
+		FileIndexer indexer = new FileIndexer();
 		if (page == 0) {
 			this.text.clear();
 		}
@@ -60,44 +62,27 @@ public class SearchService extends Service {
 			this.text.addAll(text);
 		} else {
 			this.text.addAll(text);
-			FileIndex tmpIndex = null;
 			try {
-				final FileIndexer indexer = new FileIndexer(filePath,
-						this.getApplicationContext());
-				tmpIndex = indexer.buildIndex(this.text, filePath);
-				new Thread(new Runnable() {
-					public void run() {
-						indexer.writeIndex();
-					}
-				}).start();
-				index = tmpIndex;
+				indexer.buildIndex(this.text, filePath);
 			} catch (Exception ex) {
 				Log.v("PDFIndex", "" + ex.getMessage());
 				ex.printStackTrace();
 			} finally {
-				Log.i(TAG, "Built Index of size: " + tmpIndex.getSize());
+				Log.i(TAG, "Built Index");
 			}
 		}
 	}
 
 	public boolean load(final String filePath) {
-		if (FileIndexer.indexExists(filePath)) {
-			FileIndex tmpIndex = null;
-			try {
-				FileIndexer indexer = new FileIndexer(filePath,
-						this.getApplicationContext());
-				tmpIndex = indexer.loadIndex();
-				index = tmpIndex;
-			} catch (Exception ex) {
-				Log.v("PDFIndex", "" + ex.getMessage());
-				ex.printStackTrace();
-			} finally {
-				Log.i(TAG, "Loaded Index of size: " + tmpIndex.getSize());
-			}
+		this.path = filePath;
+		Document tmp;
+		if((tmp = this.searcher.getMetaFile(filePath)) != null){
+			this.pages = tmp.getField("pages").numericValue().intValue();
 			return true;
 		} else {
 			return false;
 		}
+		
 	}
 
 	private class SearchManager {
@@ -133,6 +118,8 @@ public class SearchService extends Service {
 		 */
 
 		private List<Result> find(String text, int variance) {
+			return new ArrayList<Result>();
+			/*
 			FileIndex index = SearchService.this.index;
 
 			if (index == null) {
@@ -213,9 +200,17 @@ public class SearchService extends Service {
 			}
 
 			return results;
+			*/
 		}
 
 		private boolean[] quickFind(String text) {
+			Document[] docs = SearchService.this.searcher.find("text", text, pages, "path", path);
+			boolean[] results = new boolean[pages];
+			for(int i = 0; i < docs.length; i++){
+				results[docs[i].getField("page").numericValue().intValue()] = true; 
+			}
+			return results;
+			/*
 			FileIndex index = SearchService.this.index;
 
 			if (index == null) {
@@ -285,6 +280,7 @@ public class SearchService extends Service {
 			}
 
 			return results;
+			*/
 		}
 
 		private boolean matchesString(FileIndex index, String[] search,

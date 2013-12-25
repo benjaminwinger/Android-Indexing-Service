@@ -1,4 +1,4 @@
-package com.bmw.android.androidindexer;
+/*package com.bmw.android.androidindexer;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -64,3 +64,4 @@ public class KryoWrapper {
 		return index;
 	}
 }
+*/

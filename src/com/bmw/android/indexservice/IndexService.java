@@ -9,6 +9,30 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexWriterConfig.OpenMode;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -40,7 +64,11 @@ public class IndexService extends Service {
 	protected boolean interrupt;
 	protected long indexTime;
 	private int mIsBound;
+	private boolean doneCrawling;
 	private ArrayList<ParserService> services;
+	private Queue<Indexable> pIndexes;
+	private IndexSearcher indexSearcher;
+	private FileIndexer indexer;
 
 	public IndexService() {
 		this.indexes = new ArrayList<FileIndex>();
@@ -48,77 +76,12 @@ public class IndexService extends Service {
 		// new Thread(new ServerThread()).start();
 	}
 
-	/*
-	 * class ServerThread implements Runnable { public void run() { Socket
-	 * socket = null; try { serverSocket = new ServerSocket(SERVER_PORT, 50,
-	 * InetAddress.getLocalHost()); Log.i(TAG, "Listening at address: " +
-	 * serverSocket.getInetAddress().getHostAddress() +
-	 * serverSocket.getLocalPort()); } catch (Exception e) {
-	 * e.printStackTrace(); } while (!Thread.currentThread().isInterrupted()) {
-	 * try { //Log.i(TAG, "Waiting for Socket"); socket = serverSocket.accept();
-	 * Log.i(TAG, "Client connected from address: " +
-	 * socket.getInetAddress().getCanonicalHostName()); CommunicationThread
-	 * commThread = new CommunicationThread( socket); new
-	 * Thread(commThread).start(); } catch (Exception e) { e.printStackTrace();
-	 * } } } }
-	 * 
-	 * class CommunicationThread implements Runnable { private Socket
-	 * clientSocket; private BufferedReader input; private BufferedWriter
-	 * output;
-	 * 
-	 * public CommunicationThread(Socket clientSocket) { this.clientSocket =
-	 * clientSocket; try { this.input = new BufferedReader(new
-	 * InputStreamReader( this.clientSocket.getInputStream())); } catch
-	 * (IOException e) { // TODO Auto-generated catch block e.printStackTrace();
-	 * } }
-	 * 
-	 * @SuppressWarnings("unchecked") public void run() { try { while
-	 * (!Thread.currentThread().isInterrupted() &&
-	 * this.clientSocket.isConnected() && !this.clientSocket.isInputShutdown()
-	 * && input.ready()) { try { String read = input.readLine(); if
-	 * (read.startsWith("load")) { String[] args = read.split(" "); boolean
-	 * loaded = IndexService.this.load(args[1].replace("\\_", " ")); this.output
-	 * = new BufferedWriter(new OutputStreamWriter(
-	 * this.clientSocket.getOutputStream())); if (loaded) {
-	 * output.write("load true"); } else { output.write("load false"); }
-	 * output.flush(); output.close(); } else if (read.startsWith("search")) {
-	 * String[] args = read.split(" "); List<Result> results =
-	 * IndexService.this.sm.find(args[1], args[2].replace("\\_", " "),
-	 * Integer.parseInt(args[3])); OutputStream os =
-	 * clientSocket.getOutputStream(); ObjectOutputStream oos = new
-	 * ObjectOutputStream(os); oos.writeObject(results); oos.flush();
-	 * oos.close(); } else if (read.startsWith("qsearch")) { String[] args =
-	 * read.split(" "); boolean[] results =
-	 * IndexService.this.sm.quickFind(args[1], args[2].replace("\\_", " "));
-	 * OutputStream os = clientSocket.getOutputStream(); ObjectOutputStream oos
-	 * = new ObjectOutputStream(os); oos.writeObject(results); oos.flush();
-	 * oos.close(); } else if (read.startsWith("build")){ String[] args =
-	 * read.split(" "); ObjectInputStream in = new
-	 * ObjectInputStream(clientSocket.getInputStream()); try {
-	 * buildIndex(args[1].replace("\\_", " "),
-	 * (ArrayList<String>)in.readObject()); } catch (ClassNotFoundException e) {
-	 * // TODO Auto-generated catch block e.printStackTrace(); } in.close(); }
-	 * else if (read.startsWith("unload")){ String[] args = read.split(" ");
-	 * for(FileIndex index : IndexService.this.indexes){ if(new
-	 * File(index.getFilename()).getAbsolutePath().equals(new
-	 * File(args[1].replace("\\_", " ")).getAbsolutePath())){
-	 * indexes.remove(index); } } }
-	 * 
-	 * } catch (IOException e) { e.printStackTrace(); } } } catch
-	 * (NumberFormatException e1) { // TODO Auto-generated catch block
-	 * e1.printStackTrace(); } catch (IOException e1) { // TODO Auto-generated
-	 * catch block e1.printStackTrace(); } try { this.input.close();
-	 * this.clientSocket.close(); } catch (IOException e) { // TODO
-	 * Auto-generated catch block e.printStackTrace(); } } }
-	 */
-
 	@Override
 	public void onCreate() {
 		nm = (NotificationManager) this
 				.getSystemService(this.NOTIFICATION_SERVICE);
 		IndexService.this.notifyPersistent(
-				getText(R.string.notification_indexer_started),
-				1);
+				getText(R.string.notification_indexer_started), 1);
 		try {
 			boolean mExternalStorageAvailable = false;
 			boolean mExternalStorageWriteable = false;
@@ -147,6 +110,48 @@ public class IndexService extends Service {
 				return;
 			}
 			this.loadServices(Environment.getExternalStorageDirectory());
+			this.indexer = new FileIndexer();
+			this.pIndexes = new LinkedList<Indexable>();
+			this.doneCrawling = false;
+			new Thread(new Runnable() {
+				public void run() {
+					while (true) {
+						try {
+							Thread.sleep(10);
+						} catch (InterruptedException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						Indexable tmp = pIndexes.poll();
+						if (tmp != null) {
+							if (tmp.tmpData == null || tmp.tmpData.size() == 0) {
+								Log.v(TAG, "Invalid File");
+								IndexService.this.notify(
+										"Problem indexing file "
+												+ new File(tmp.currentPath)
+														.getName()
+												+ ": Invalid file",
+										R.string.notification_indexer_error);
+
+							} else {
+								Log.i(TAG, "Testing Lucene on index: "
+										+ tmp.currentPath);
+								try {
+									indexer.buildIndex(tmp.tmpData,
+											tmp.currentPath);
+								} catch (Exception e) {
+									Log.e(TAG, "Error ", e);
+								}
+							}
+						}
+						if (doneCrawling && mIsBound == 0
+								&& pIndexes.size() == 0) {
+
+							IndexService.this.stopSelf();
+						}
+					}
+				}
+			}).start();
 			crawl(new File("/"));
 		} catch (IOException e1) {
 			// TODO Auto-generated catch block
@@ -194,9 +199,28 @@ public class IndexService extends Service {
 			}
 		}
 	}
-	
-	public void onDestroy(){
+
+	public void onDestroy() {
 		nm.cancel(1);
+	}
+
+	private class Indexable {
+		private ArrayList<String> tmpData;
+		private String currentPath;
+		private IBinder mService;
+		private String serviceName = null;
+		private RemoteBuilder builder;
+
+		public Indexable(ArrayList<String> tmpData, String currentPath,
+				IBinder mService, String serviceName, RemoteBuilder builder) {
+			super();
+			this.tmpData = tmpData;
+			this.currentPath = currentPath;
+			this.mService = mService;
+			this.serviceName = serviceName;
+			this.builder = builder;
+		}
+
 	}
 
 	private class RemoteBuilder {
@@ -221,6 +245,11 @@ public class IndexService extends Service {
 			if (serviceName == null) {
 				return;
 			}
+			/*
+			 * while(mIsBound > 0){ try { Thread.sleep(1); } catch
+			 * (InterruptedException e) { // TODO Auto-generated catch block
+			 * e.printStackTrace(); } }
+			 */
 			if (c.bindService(new Intent(serviceName), mConnection,
 					Context.BIND_AUTO_CREATE)) {
 				mIsBound++;
@@ -233,30 +262,10 @@ public class IndexService extends Service {
 				// Detach our existing connection.
 				c.unbindService(mConnection);
 				mIsBound--;
-				if (mIsBound == 0) {
-					nm.cancel(1);
-					stopSelf();
-				}
+				/*
+				 * if (mIsBound == 0) { nm.cancel(1); stopSelf(); }
+				 */
 			}
-		}
-
-		protected void build() {
-			if (tmpData == null || tmpData.size() == 0) {
-				Log.v(TAG, "Invalid File");
-				IndexService.this.notify("Problem indexing file "
-						+ new File(currentPath).getName() + ": Invalid file",
-						R.string.notification_indexer_error);
-
-			} else {
-				FileIndexer index = new FileIndexer(currentPath, IndexService.this.getApplicationContext());
-				index.buildIndex(tmpData, currentPath);
-				index.writeIndex();
-				IndexService.this.notify(
-						getString(R.string.notification_indexer_indexed_file)
-								+ new File(currentPath).getName(),
-						R.string.notification_indexer_indexed_file);
-			}
-			doUnbindService(getApplicationContext());
 		}
 
 		private ServiceConnection mConnection = new ServiceConnection() {
@@ -284,7 +293,10 @@ public class IndexService extends Service {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				build();
+				// build();
+				pIndexes.add(new Indexable(tmpData, currentPath, mService,
+						serviceName, RemoteBuilder.this));
+				doUnbindService(getApplicationContext());
 			}
 
 			// Called when the connection with the service disconnects
@@ -344,18 +356,23 @@ public class IndexService extends Service {
 								e.printStackTrace();
 							}
 						}
-						if (!FileIndexer.indexExists(contents[i]
-								.getAbsolutePath())) {
-							Log.i(TAG,
-									"Creating index for "
-											+ contents[i].getAbsolutePath());
-							try {
-								new RemoteBuilder(
-										contents[i].getAbsolutePath(),
-										serviceName);
-							} catch (Exception e) {
-								Log.e(TAG, "" + e.getMessage());
+						try {
+							if (indexer.checkForIndex("id",
+									contents[i].getAbsolutePath() + ":meta")) {
+								Log.i(TAG, "Found index; skipping.");
+							} else {
+								Log.i(TAG, "Index not found, building index");
+								try {
+									new RemoteBuilder(
+											contents[i].getAbsolutePath(),
+											serviceName);
+								} catch (Exception e) {
+									Log.e(TAG, "" + e.getMessage());
+								}
 							}
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
 						}
 					}
 				}
@@ -370,6 +387,7 @@ public class IndexService extends Service {
 				}
 			}
 		}
+		this.doneCrawling = true;
 	}
 
 	public void notify(CharSequence c, int id) {
@@ -409,137 +427,5 @@ public class IndexService extends Service {
 	public IBinder onBind(Intent intent) {
 		return mBinder;
 	}
-
-	/*
-	 * public boolean buildIndex(String filePath, List<String> text){ if
-	 * (!FileIndexer.indexExists(filePath)) { FileIndex tmpIndex = null; try {
-	 * FileIndexer indexer = new FileIndexer(filePath); tmpIndex =
-	 * indexer.buildIndex(text, filePath);
-	 * IndexService.this.indexes.add(tmpIndex); } catch (Exception ex) {
-	 * Log.v("PDFIndex", "" + ex.getMessage()); ex.printStackTrace(); } finally
-	 * { Log.i(TAG, "Loaded Index of size: " + tmpIndex.getSize()); } return
-	 * true; } else { return false; } }
-	 * 
-	 * public boolean load(final String filePath) { if
-	 * (FileIndexer.indexExists(filePath)) { FileIndex tmpIndex = null; try {
-	 * FileIndexer indexer = new FileIndexer(filePath); tmpIndex =
-	 * indexer.loadIndex(); IndexService.this.indexes.add(tmpIndex); } catch
-	 * (Exception ex) { Log.v("PDFIndex", "" + ex.getMessage());
-	 * ex.printStackTrace(); } finally { Log.i(TAG, "Loaded Index of size: " +
-	 * tmpIndex.getSize()); } return true; } else { return false; } }
-	 * 
-	 * private class SearchManager { boolean found; boolean finishedLoading =
-	 * false;
-	 * 
-	 * public SearchManager() {
-	 * 
-	 * }
-	 * 
-	 * public void loadAllIndexes() { File directory = new
-	 * File(FileIndexer.getStorageDir()); File[] contents =
-	 * directory.listFiles(new FileFilter() {
-	 * 
-	 * @Override public boolean accept(File f) { if (f.isFile() &&
-	 * f.getName().toLowerCase().endsWith(".index") && f.canRead()) { return
-	 * true; } return false; }
-	 * 
-	 * });
-	 * 
-	 * Comparator<File> cmp = new Comparator<File>() {
-	 * 
-	 * @Override public int compare(File left, File right) { if (left.length() <
-	 * right.length()) { return -1; } else if (left.length() == right.length())
-	 * { return 0; } else { return 1; } } }; if (contents != null) {
-	 * Arrays.sort(contents, cmp); }
-	 * 
-	 * for (int i = 0; i < contents.length; i++) { Log.i(TAG,
-	 * "Loading index; size is: " + contents[i].length()); indexes.add(new
-	 * FileIndexer(contents[i].getAbsolutePath()) .loadIndex()); } Log.i(TAG,
-	 * "Done loading indexes"); finishedLoading = true; }
-	 * 
-	 * private List<Result> find(String text, String indexname, int variance) {
-	 * FileIndex index = null; for (int i = 0; i < indexes.size(); i++) { if
-	 * (indexes.get(i).getFilename().equals(indexname)) { index =
-	 * indexes.get(i); } } if (index == null) { return new ArrayList<Result>();
-	 * } if (text == null) throw new
-	 * IllegalStateException("text cannot be null"); if (text.length() < 1) {
-	 * return new ArrayList<Result>(); } String tmp = text; String pdfName = new
-	 * File(index.getFilename()).getName(); pdfName = pdfName.replace(".index",
-	 * ""); pdfName = pdfName + ".pdf"; String[] search = tmp.split(" "); for
-	 * (int j = 0; j < search.length; j++) { search[j] =
-	 * search[j].toLowerCase(); } ArrayList<Result> results = new
-	 * ArrayList<Result>(); for (int page = 0; page < index.getPageCount();
-	 * page++) { if (search.length == 1) { Set<Entry<String, Word>> words =
-	 * index .getWordsForPage(page).entrySet(); for (Entry<String, Word> e :
-	 * words) { if (e.getKey().contains(search[0])) { Set<Entry<Integer,
-	 * String>> curr = e.getValue().next .entrySet(); for (Entry<Integer,
-	 * String> entry : curr) { results.add(new Result(page, this.getResult(
-	 * index, page, entry.getKey(), 1, variance))); } } } } else { Set<String>
-	 * words = index.getWordsForPage(page).keySet(); int location = -1; for
-	 * (String w : words) { if (w.endsWith((search[0]))) { Word currentWord =
-	 * index.getWordsForPage(page).get( w); if (search.length == 2) {
-	 * Set<Entry<Integer, String>> curr = currentWord.next .entrySet(); for
-	 * (Entry<Integer, String> entry : curr) { if
-	 * (entry.getValue().startsWith(search[1])) { location = entry.getKey();
-	 * results.add(new Result( page, this.getResult(index, page, location,
-	 * search.length, variance))); } } } else { Set<Entry<Integer, String>> curr
-	 * = currentWord.next .entrySet(); for (Entry<Integer, String> entry : curr)
-	 * { if (entry.getValue().equals(search[1])) { if (this.matchesString(index,
-	 * page, search, 2, index.getWord(entry.getValue(), page), entry.getKey() +
-	 * 1)) { location = entry.getKey();
-	 * 
-	 * results.add(new Result(page, this .getResult(index, page, location,
-	 * search.length, variance)));
-	 * 
-	 * } } } } }
-	 * 
-	 * }
-	 * 
-	 * } }
-	 * 
-	 * return results; }
-	 * 
-	 * private boolean[] quickFind(String text, String indexname) { FileIndex
-	 * index = null; for (int i = 0; i < indexes.size(); i++) { if
-	 * (indexes.get(i).getFilename().equals(indexname)) { index =
-	 * indexes.get(i); } } if (index == null) { return new boolean[0]; } if
-	 * (text == null) throw new IllegalStateException("text cannot be null"); if
-	 * (text.length() < 1) { return new boolean[0]; } String tmp = text; String
-	 * pdfName = new File(index.getFilename()).getName(); pdfName =
-	 * pdfName.replace(".index", ""); pdfName = pdfName + ".pdf"; String[]
-	 * search = tmp.split(" "); for (int j = 0; j < search.length; j++) {
-	 * search[j] = search[j].toLowerCase(); } boolean[] results = new
-	 * boolean[index.getPageCount()]; for (int page = 0; page <
-	 * index.getPageCount(); page++) { if (search.length == 1) {
-	 * Set<Entry<String, Word>> words = index .getWordsForPage(page).entrySet();
-	 * for (Entry<String, Word> e : words) { if (e.getKey().contains(search[0]))
-	 * { results[page] = true; break; } } } else { Set<String> words =
-	 * index.getWordsForPage(page).keySet(); int location = -1; for (String w :
-	 * words) { if (w.endsWith((search[0]))) { Word currentWord =
-	 * index.getWordsForPage(page).get( w); if (search.length == 2) {
-	 * Set<Entry<Integer, String>> curr = currentWord.next .entrySet(); for
-	 * (Entry<Integer, String> entry : curr) { if
-	 * (entry.getValue().startsWith(search[1])) { results[page] = true; break; }
-	 * } } else { Set<Entry<Integer, String>> curr = currentWord.next
-	 * .entrySet(); for (Entry<Integer, String> entry : curr) { if
-	 * (entry.getValue().equals(search[1])) { if (this.matchesString(index,
-	 * page, search, 2, index.getWord(entry.getValue(), page), entry.getKey() +
-	 * 1)) { results[page] = true; break; } } } } } } } }
-	 * 
-	 * return results; }
-	 * 
-	 * private boolean matchesString(FileIndex index, int page, String[] search,
-	 * int searchPos, Word w, int position) { if (searchPos >= search.length) {
-	 * return true; } String next = w.next.get(position); if (searchPos ==
-	 * search.length - 1) { if (!next.startsWith(search[searchPos])) { return
-	 * false; } } else { if (!next.equals(search[searchPos])) { return false; }
-	 * } Word tmpWd = index.getWord(next, page); return
-	 * this.matchesString(index, page, search, searchPos + 1, tmpWd, position +
-	 * 1); }
-	 * 
-	 * private String getResult(FileIndex index, int page, int pos, int len, int
-	 * variance) { return index.getPhrase(page, pos - variance, pos + len +
-	 * variance); } }
-	 */
 
 }

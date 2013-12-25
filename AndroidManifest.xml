@@ -1,44 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.bmw.android.ais"
-    android:versionCode="1"
-    android:versionName="1.0" >
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="1" android:versionName="0.1" package="com.bmw.android.ais">
 
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
-    <uses-sdk
-        android:minSdkVersion="7"
-        android:targetSdkVersion="17" />
+    <uses-sdk android:minSdkVersion="7" android:targetSdkVersion="17"/>
 
-    <application
-        android:name="com.bmw.android.ais.AISApplication"
-        android:allowBackup="true"
-        android:icon="@drawable/ic_launcher"
-        android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
-        <activity
-            android:name="com.bmw.android.ais.MainActivity"
-            android:label="@string/app_name" >
+    <application android:allowBackup="true" android:debuggable="true" android:icon="@drawable/ic_launcher" android:label="@string/app_name" android:name="com.bmw.android.ais.AISApplication" android:theme="@style/AppTheme">
+        <activity android:label="@string/app_name" android:name="com.bmw.android.ais.MainActivity">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
-        <service
-            android:name="com.bmw.android.indexservice.IndexService"
-            android:enabled="true"
-            android:exported="true"
-            android:process=":index" >
+        <service android:enabled="true" android:exported="true" android:name="com.bmw.android.indexservice.IndexService" android:process=":index">
         </service>
-              <service
-            android:name="com.bmw.android.indexservice.SearchService"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:process=":remote" >
+              <service android:exported="true" android:label="@string/app_name" android:name="com.bmw.android.indexservice.SearchService" android:process=":remote">
             <intent-filter>
-                <action android:name="com.bmw.android.indexservice.SEARCH" >
+                <action android:name="com.bmw.android.indexservice.SEARCH">
                 </action>
             </intent-filter>
         </service>

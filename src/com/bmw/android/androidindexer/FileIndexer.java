@@ -2,10 +2,23 @@ package com.bmw.android.androidindexer;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.StringTokenizer;
+
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexWriterConfig.OpenMode;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
 
 import android.content.Context;
 import android.os.Environment;
@@ -14,15 +27,30 @@ import android.util.Log;
 public class FileIndexer {
 	private static String TAG = "com.bmw.android.androidindexer.PDFIndexer";
 	private IndexingListener listener;
-	private FileIndex index;
 	private Context context;
+	private IndexWriter writer;
+	private FileSearcher searcher;
 
 	public FileIndexer() {
 		super();
+		this.searcher = new FileSearcher();
+		Directory dir;
+		try {
+			dir = FSDirectory.open(new File(FileIndexer.getRootStorageDir()));
+			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
+			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_46,
+					analyzer);
+			iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
+			this.writer = new IndexWriter(dir, iwc);
+			this.writer.commit();
+			this.writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public FileIndexer(String filename, Context c) {
-		this.index = new FileIndex(filename);
 		this.context = c;
 	}
 
@@ -30,84 +58,115 @@ public class FileIndexer {
 		this(filename, c);
 		this.listener = i;
 	}
-
-	public FileIndex loadIndex() {
-		try {
-			if (new File(index.getFilename()).exists()) {
-				this.index = (new KryoWrapper().ReadBuffered(FileIndexer
-						.getFileDir(index.getFilename())));
-			}
-			if (this.listener != null) {
-				this.listener.indexLoaded();
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return this.index;
-	}
-
-	public FileIndex buildIndex(List<String> contents, String filename) {
-		if (!new File(FileIndexer.getStorageDir()).exists()) {
-			if (new File(FileIndexer.getStorageDir()).mkdirs()) {
-				Log.i(TAG, "Created Folders at " + FileIndexer.getStorageDir());
-			} else {
-				Log.i(TAG,
-						"Failed to create folder at "
-								+ FileIndexer.getStorageDir());
-			}
-		}
-		String text = "";
-		int pos = 0;
-		HashMap<String, Word> indexed = new HashMap<String, Word>();
-		for (int i = 0; i < contents.size(); i++) {
-			text = contents.get(i);
-			Log.i("PDF", "indexing: Page " + i);
-			StringTokenizer tokens = new StringTokenizer(text);
-			ArrayList<String> words = new ArrayList<String>();
-			
-			while (tokens.hasMoreTokens()) {
-				words.add(tokens.nextToken());
-			}
-			for (int j = words.size() - 1; j >= 0; j--) {
-				boolean found = false;
-				Word temp = null;
-				if ((temp = indexed.get(words.get(j))) != null) {
-					found = true;
-					if (j < words.size() - 1) {
-						String next = words.get(j + 1);
-						temp.addNext(next, i, j);
-					}
-				}
-				if (!found) {
-					temp = new Word();
-					if (j < words.size() - 2) {
-						String next = words.get(j + 1);
-						temp.addNext(next, i, j);
-					}
-					indexed.put(words.get(j), temp);
-				}
-			}
-		}
-		this.index.setWords(indexed, contents.size());
-		if (this.listener != null) {
-			this.listener.indexingCompleted();
-		}
-		return this.index;
-	}
 	
-	public void writeIndex(){
-		try {
-			new KryoWrapper().WriteBuffered(index,
-					FileIndexer.getFileDir(index.getFilename()));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	public boolean checkForIndex(String field, String value) throws Exception{
+		return this.searcher.checkForIndex(field, value);
+	}
+
+	public static void Build(IndexWriter writer, File file, int page,
+			String contents) {
+		if (file.canRead()) {
+			try {
+				Log.i(TAG, "Started Indexing file: " + file.getName() + " "
+						+ page);
+				Document doc = new Document();
+				doc.add(new StringField("path", file.getPath(), Field.Store.YES));
+				doc.add(new StringField("id", file.getPath() + ":" + page,
+						Field.Store.YES));
+				doc.add(new LongField("modified", file.lastModified(),
+						Field.Store.NO));
+				// for(int i = 0; i < contents.size(); i++){
+				doc.add(new TextField("text", contents, Field.Store.YES));
+				doc.add(new IntField("page", page, Field.Store.YES));
+				// }
+				if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+					writer.addDocument(doc);
+					writer.commit();
+					// writer.forceMerge(1);
+				} else {
+					// Todo - Use updateDocument to delete the page that exists.
+					// must create a field that combines path and page number as
+					// if path is used, it will delete all pages of the document
+					// in the index
+					writer.updateDocument(new Term("id", file.getPath() + ":"
+							+ page), doc);
+					// writer.addDocument(doc);
+					writer.commit();
+					// writer.forceMerge(1);
+				}
+				Log.i(TAG, "Done Indexing file: " + file.getName() + " " + page);
+			} catch (Exception e) {
+				Log.e(TAG, "Error ", e);
+			}
 		}
-		// new KryoWrapper().WriteBuffered(this.index.getWords(),
-		// this.context.openFileOutput(new
-		// File(this.index.getFilename()).getName(),
-		// Context.MODE_PRIVATE));
+	}
+
+	public void buildIndex(List<String> contents, String filename) {
+		try {
+			for (int i = 0; i < contents.size(); i++) {
+				if (!this.searcher.checkForIndex("id", filename + ":" + i)) {
+					boolean create = true;
+					File indexDirFile = new File(
+							FileIndexer.getRootStorageDir());
+
+					Directory dir = FSDirectory.open(indexDirFile);
+					Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
+					IndexWriterConfig iwc = new IndexWriterConfig(
+							Version.LUCENE_46, analyzer);
+					iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+					writer = new IndexWriter(dir, iwc);
+					FileIndexer.Build(writer, new File(filename), i,
+							contents.get(i));
+					writer.close();
+				} else {
+					Log.i(TAG, "Skipping " + filename + ":" + i
+							+ " Already in index");
+				}
+			}
+			File indexDirFile = new File(FileIndexer.getRootStorageDir());
+
+			Directory dir;
+
+			dir = FSDirectory.open(indexDirFile);
+
+			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
+			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_46,
+					analyzer);
+			iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+			writer = new IndexWriter(dir, iwc);
+			Log.i(TAG, "Writing Metadata");
+			Document doc = new Document();
+			File file = new File(filename);
+			doc.add(new StringField("path", file.getPath(), Field.Store.YES));
+			doc.add(new StringField("id", file.getPath() + ":meta",
+					Field.Store.YES));
+			doc.add(new LongField("modified", file.lastModified(),
+					Field.Store.NO));
+			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+				writer.addDocument(doc);
+				writer.commit();
+				// writer.forceMerge(1);
+			} else {
+				// Todo - Use updateDocument to delete
+				// the page that exists.
+				// must create a field that combines
+				// path and page number as if path is
+				// used, it will delete all pages of the
+				// document in the index
+				writer.updateDocument(new Term("id", file.getPath() + ":meta"),
+						doc);
+				// writer.addDocument(doc);
+				writer.commit();
+				// writer.forceMerge(1);
+			}
+			Log.i(TAG, "Done creating metadata");
+			writer.forceMerge(1);
+			writer.commit();
+			writer.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			Log.e(TAG, "Error", e);
+		}
 	}
 
 	public static String getStorageDir() {

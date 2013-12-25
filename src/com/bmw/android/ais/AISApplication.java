@@ -1,20 +1,23 @@
 package com.bmw.android.ais;
 
+import org.apache.lucene.search.IndexSearcher;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
 import android.util.Log;
+
 import com.bmw.android.indexservice.IndexService;
 
 
 public class AISApplication extends Application {
     
     private final static String TAG = "com.bmw.android.ais";
+	private IndexSearcher indexSearcher;
     
     public void onCreate() {
-        super.onCreate();
+        super.onCreate();        
     }
     
     /**
