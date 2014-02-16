@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 
 import android.app.Service;
 import android.content.Intent;
@@ -49,7 +50,9 @@ public class SearchService extends Service {
 
 	@Override
 	public void onCreate() {
+		super.onCreate();
 		this.sm = new SearchManager();
+		this.searcher = new FileSearcher();
 	}
 
 	public void buildIndex(String filePath, List<String> text, int page,
@@ -76,13 +79,24 @@ public class SearchService extends Service {
 	public boolean load(final String filePath) {
 		this.path = filePath;
 		Document tmp;
-		if((tmp = this.searcher.getMetaFile(filePath)) != null){
-			this.pages = tmp.getField("pages").numericValue().intValue();
+		if (SearchService.this.searcher == null) {
+			Log.e(TAG, "Searcher is null");
+			return false;
+		}
+		if ((tmp = this.searcher.getMetaFile(filePath)) != null) {
+			try {
+				IndexableField f = tmp.getField("pages");
+				if(f == null) Log.e(TAG, "Cannot find pages in metafile: " + tmp.toString());
+				this.pages = f.numericValue().intValue();
+			} catch (Exception e) {
+				Log.e(TAG, "Error", e);
+				return false;
+			}
 			return true;
 		} else {
 			return false;
 		}
-		
+
 	}
 
 	private class SearchManager {
@@ -120,167 +134,95 @@ public class SearchService extends Service {
 		private List<Result> find(String text, int variance) {
 			return new ArrayList<Result>();
 			/*
-			FileIndex index = SearchService.this.index;
-
-			if (index == null) {
-				return new ArrayList<Result>();
-			}
-			if (text == null)
-				throw new IllegalStateException("text cannot be null");
-			if (text.length() < 1) {
-				return new ArrayList<Result>();
-			}
-			String tmp = text;
-			String pdfName = new File(index.getFilename()).getName();
-			pdfName = pdfName.replace(".index", "");
-			pdfName = pdfName + ".pdf";
-			String[] search = tmp.split(" ");
-			for (int j = 0; j < search.length; j++) {
-				search[j] = search[j].toLowerCase();
-			}
-			ArrayList<Result> results = new ArrayList<Result>();
-			if (search.length == 1) {
-				Set<Entry<String, Word>> words = index.getWords().entrySet();
-				for (Entry<String, Word> e : words) {
-					if (e.getKey().contains(search[0])) {
-						Set<Entry<Integer, Next>> curr = e.getValue().next
-
-						.entrySet();
-						for (Entry<Integer, Next> entry : curr) {
-							results.add(new Result(entry.getValue().page, this
-									.getResult(index, entry.getValue().page,
-											entry.getKey(), 1, variance)));
-						}
-					}
-				}
-			} else {
-				Set<String> words = index.getWords().keySet();
-				int location = -1;
-				for (String w : words) {
-					if (w.endsWith((search[0]))) {
-						Word currentWord = index.getWords().get(w);
-						if (search.length == 2) {
-							Set<Entry<Integer, Next>> curr = currentWord.next
-									.entrySet();
-							for (Entry<Integer, Next> entry : curr) {
-								if (entry.getValue().word.startsWith(search[1])) {
-									location = entry.getKey();
-									results.add(new Result(
-											entry.getValue().page,
-											this.getResult(index,
-													entry.getValue().page,
-													location, search.length,
-													variance)));
-								}
-							}
-						} else {
-							Set<Entry<Integer, Next>> curr = currentWord.next
-									.entrySet();
-							for (Entry<Integer, Next> entry : curr) {
-								if (entry.getValue().equals(search[1])) {
-									if (this.matchesString(index, search, 2, index
-											.getWord(entry.getValue().word),
-											entry.getKey() + 1)) {
-										location = entry.getKey();
-
-										results.add(new Result(
-												entry.getValue().page,
-												this.getResult(index,
-														entry.getValue().page,
-														location,
-														search.length, variance)));
-
-									}
-								}
-							}
-						}
-					}
-
-				}
-			}
-
-			return results;
-			*/
+			 * FileIndex index = SearchService.this.index;
+			 * 
+			 * if (index == null) { return new ArrayList<Result>(); } if (text
+			 * == null) throw new IllegalStateException("text cannot be null");
+			 * if (text.length() < 1) { return new ArrayList<Result>(); } String
+			 * tmp = text; String pdfName = new
+			 * File(index.getFilename()).getName(); pdfName =
+			 * pdfName.replace(".index", ""); pdfName = pdfName + ".pdf";
+			 * String[] search = tmp.split(" "); for (int j = 0; j <
+			 * search.length; j++) { search[j] = search[j].toLowerCase(); }
+			 * ArrayList<Result> results = new ArrayList<Result>(); if
+			 * (search.length == 1) { Set<Entry<String, Word>> words =
+			 * index.getWords().entrySet(); for (Entry<String, Word> e : words)
+			 * { if (e.getKey().contains(search[0])) { Set<Entry<Integer, Next>>
+			 * curr = e.getValue().next
+			 * 
+			 * .entrySet(); for (Entry<Integer, Next> entry : curr) {
+			 * results.add(new Result(entry.getValue().page, this
+			 * .getResult(index, entry.getValue().page, entry.getKey(), 1,
+			 * variance))); } } } } else { Set<String> words =
+			 * index.getWords().keySet(); int location = -1; for (String w :
+			 * words) { if (w.endsWith((search[0]))) { Word currentWord =
+			 * index.getWords().get(w); if (search.length == 2) {
+			 * Set<Entry<Integer, Next>> curr = currentWord.next .entrySet();
+			 * for (Entry<Integer, Next> entry : curr) { if
+			 * (entry.getValue().word.startsWith(search[1])) { location =
+			 * entry.getKey(); results.add(new Result( entry.getValue().page,
+			 * this.getResult(index, entry.getValue().page, location,
+			 * search.length, variance))); } } } else { Set<Entry<Integer,
+			 * Next>> curr = currentWord.next .entrySet(); for (Entry<Integer,
+			 * Next> entry : curr) { if (entry.getValue().equals(search[1])) {
+			 * if (this.matchesString(index, search, 2, index
+			 * .getWord(entry.getValue().word), entry.getKey() + 1)) { location
+			 * = entry.getKey();
+			 * 
+			 * results.add(new Result( entry.getValue().page,
+			 * this.getResult(index, entry.getValue().page, location,
+			 * search.length, variance)));
+			 * 
+			 * } } } } }
+			 * 
+			 * } }
+			 * 
+			 * return results;
+			 */
 		}
 
 		private boolean[] quickFind(String text) {
-			Document[] docs = SearchService.this.searcher.find("text", text, pages, "path", path);
+			Document[] docs = SearchService.this.searcher.find("text", text,
+					pages, "path", path);
 			boolean[] results = new boolean[pages];
-			for(int i = 0; i < docs.length; i++){
-				results[docs[i].getField("page").numericValue().intValue()] = true; 
+			for (int i = 0; i < docs.length; i++) {
+				results[docs[i].getField("page").numericValue().intValue()] = true;
 			}
 			return results;
 			/*
-			FileIndex index = SearchService.this.index;
-
-			if (index == null) {
-				return new boolean[0];
-			}
-			if (text == null)
-				throw new IllegalStateException("text cannot be null");
-			if (text.length() < 1) {
-				return new boolean[0];
-			}
-			String tmp = text;
-			String pdfName = new File(index.getFilename()).getName();
-			pdfName = pdfName.replace(".index", "");
-			pdfName = pdfName + ".pdf";
-			String[] search = tmp.split(" ");
-			for (int j = 0; j < search.length; j++) {
-				search[j] = search[j].toLowerCase();
-			}
-			boolean[] results = new boolean[index.getPageCount()];
-			if (search.length == 1) {
-				Set<Entry<String, Word>> words = index.getWords().entrySet();
-				for (Entry<String, Word> e : words) {
-					Collection<Next> tmpCol = e.getValue().next.values();
-					for(Next next : tmpCol){
-						if(!results[next.page]){
-							if (e.getKey().contains(search[0])) {
-								for (Next n : e.getValue().next.values()) {
-									results[n.page] = true;
-									Log.i(TAG, "Found at Page: " + n.page);
-								}
-							}
-						}
-					}
-				}
-			} else {
-				Set<String> words = index.getWords().keySet();
-				int location = -1;
-				for (String w : words) {
-					if (w.endsWith((search[0]))) {
-						Word currentWord = index.getWords().get(w);
-						if (search.length == 2) {
-							Set<Entry<Integer, Next>> curr = currentWord.next
-									.entrySet();
-							for (Entry<Integer, Next> entry : curr) {
-								if (entry.getValue().word.startsWith(search[1])) {
-									results[entry.getValue().page] = true;
-								}
-							}
-						} else {
-							Set<Entry<Integer, Next>> curr = currentWord.next
-									.entrySet();
-							for (Entry<Integer, Next> entry : curr) {
-								if (entry.getValue().equals(search[1])) {
-									if (this.matchesString(
-											index,
-											search,
-											2,
-											index.getWord(entry.getValue().word),
-											entry.getKey() + 1)) {
-										results[entry.getValue().page] = true;
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-
-			return results;
-			*/
+			 * FileIndex index = SearchService.this.index;
+			 * 
+			 * if (index == null) { return new boolean[0]; } if (text == null)
+			 * throw new IllegalStateException("text cannot be null"); if
+			 * (text.length() < 1) { return new boolean[0]; } String tmp = text;
+			 * String pdfName = new File(index.getFilename()).getName(); pdfName
+			 * = pdfName.replace(".index", ""); pdfName = pdfName + ".pdf";
+			 * String[] search = tmp.split(" "); for (int j = 0; j <
+			 * search.length; j++) { search[j] = search[j].toLowerCase(); }
+			 * boolean[] results = new boolean[index.getPageCount()]; if
+			 * (search.length == 1) { Set<Entry<String, Word>> words =
+			 * index.getWords().entrySet(); for (Entry<String, Word> e : words)
+			 * { Collection<Next> tmpCol = e.getValue().next.values(); for(Next
+			 * next : tmpCol){ if(!results[next.page]){ if
+			 * (e.getKey().contains(search[0])) { for (Next n :
+			 * e.getValue().next.values()) { results[n.page] = true; Log.i(TAG,
+			 * "Found at Page: " + n.page); } } } } } } else { Set<String> words
+			 * = index.getWords().keySet(); int location = -1; for (String w :
+			 * words) { if (w.endsWith((search[0]))) { Word currentWord =
+			 * index.getWords().get(w); if (search.length == 2) {
+			 * Set<Entry<Integer, Next>> curr = currentWord.next .entrySet();
+			 * for (Entry<Integer, Next> entry : curr) { if
+			 * (entry.getValue().word.startsWith(search[1])) {
+			 * results[entry.getValue().page] = true; } } } else {
+			 * Set<Entry<Integer, Next>> curr = currentWord.next .entrySet();
+			 * for (Entry<Integer, Next> entry : curr) { if
+			 * (entry.getValue().equals(search[1])) { if (this.matchesString(
+			 * index, search, 2, index.getWord(entry.getValue().word),
+			 * entry.getKey() + 1)) { results[entry.getValue().page] = true; } }
+			 * } } } } }
+			 * 
+			 * return results;
+			 */
 		}
 
 		private boolean matchesString(FileIndex index, String[] search,

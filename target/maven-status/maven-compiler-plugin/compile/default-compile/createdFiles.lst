@@ -2,7 +2,6 @@ com/bmw/android/ais/MainActivity.class
 com/bmw/android/indexservice/ParserService.class
 com/bmw/android/indexservice/IndexService.class
 com/bmw/android/androidindexer/IndexingListener.class
-com/bmw/android/indexservice/IndexService$1$1.class
 com/bmw/android/ais/R$id.class
 com/bmw/android/ais/R$style.class
 com/bmw/android/androidindexer/FileIndex.class
@@ -12,7 +11,7 @@ com/bmw/android/ais/R.class
 com/bmw/android/indexservice/IndexService$LocalBinder.class
 com/bmw/android/androidindexer/Next.class
 com/bmw/android/androidindexer/FileUtilities.class
-com/bmw/android/indexservice/SearchService$2.class
+com/bmw/android/androidindexer/FileSearcher.class
 com/bmw/android/ais/R$layout.class
 com/bmw/android/indexclient/MClientService.class
 com/bmw/android/indexservice/BSearchService$Stub.class

@@ -1,6 +1,7 @@
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileIndex.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileIndexer.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileUtilities.java
+/home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileSearcher.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/IndexingListener.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/indexdata/Result.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/indexservice/IndexService.java

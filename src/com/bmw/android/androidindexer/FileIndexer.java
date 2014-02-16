@@ -45,7 +45,6 @@ public class FileIndexer {
 			this.writer.commit();
 			this.writer.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -84,7 +83,7 @@ public class FileIndexer {
 					writer.commit();
 					// writer.forceMerge(1);
 				} else {
-					// Todo - Use updateDocument to delete the page that exists.
+					// TODO - Use updateDocument to delete the page that exists.
 					// must create a field that combines path and page number as
 					// if path is used, it will delete all pages of the document
 					// in the index
@@ -140,6 +139,7 @@ public class FileIndexer {
 			doc.add(new StringField("path", file.getPath(), Field.Store.YES));
 			doc.add(new StringField("id", file.getPath() + ":meta",
 					Field.Store.YES));
+			doc.add(new IntField("pages", contents.size(), Field.Store.YES));
 			doc.add(new LongField("modified", file.lastModified(),
 					Field.Store.NO));
 			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
@@ -164,7 +164,6 @@ public class FileIndexer {
 			writer.commit();
 			writer.close();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			Log.e(TAG, "Error", e);
 		}
 	}
