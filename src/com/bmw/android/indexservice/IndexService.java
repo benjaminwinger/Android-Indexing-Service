@@ -12,27 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexWriterConfig.OpenMode;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -49,13 +29,11 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.bmw.android.ais.R;
-import com.bmw.android.androidindexer.FileIndex;
 import com.bmw.android.androidindexer.FileIndexer;
 import com.bmw.android.indexclient.MClientService;
 
 public class IndexService extends Service {
 	private static String TAG = "com.bmw.android.indexservice.IndexService";
-	private ArrayList<FileIndex> indexes;
 	private ServerSocket serverSocket;
 	private Thread serverThread = null;
 	private static final int SERVER_PORT = 6002;
@@ -71,7 +49,6 @@ public class IndexService extends Service {
 	private FileIndexer indexer;
 
 	public IndexService() {
-		this.indexes = new ArrayList<FileIndex>();
 		this.services = new ArrayList<ParserService>();
 		// new Thread(new ServerThread()).start();
 	}
