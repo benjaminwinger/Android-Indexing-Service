@@ -4,12 +4,10 @@ com/bmw/android/indexservice/IndexService.class
 com/bmw/android/androidindexer/IndexingListener.class
 com/bmw/android/ais/R$id.class
 com/bmw/android/ais/R$style.class
-com/bmw/android/androidindexer/FileIndex.class
 com/bmw/android/indexclient/MClientService$Stub$Proxy.class
 com/bmw/android/indexservice/IndexService$1.class
 com/bmw/android/ais/R.class
 com/bmw/android/indexservice/IndexService$LocalBinder.class
-com/bmw/android/androidindexer/Next.class
 com/bmw/android/androidindexer/FileUtilities.class
 com/bmw/android/androidindexer/FileSearcher.class
 com/bmw/android/ais/R$layout.class
@@ -24,7 +22,6 @@ com/bmw/android/indexdata/Result.class
 com/bmw/android/ais/R$drawable.class
 com/bmw/android/ais/AISApplication.class
 com/bmw/android/indexservice/IndexService$Indexable.class
-com/bmw/android/androidindexer/Word.class
 com/bmw/android/indexservice/SearchService.class
 com/bmw/android/ais/R$dimen.class
 com/bmw/android/ais/R$menu.class

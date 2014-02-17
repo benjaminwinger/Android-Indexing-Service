@@ -96,7 +96,6 @@ public class IndexService extends Service {
 						try {
 							Thread.sleep(10);
 						} catch (InterruptedException e1) {
-							// TODO Auto-generated catch block
 							e1.printStackTrace();
 						}
 						Indexable tmp = pIndexes.poll();
@@ -131,7 +130,6 @@ public class IndexService extends Service {
 			}).start();
 			crawl(new File("/"));
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 	}
@@ -147,7 +145,6 @@ public class IndexService extends Service {
 							br = new BufferedReader(new FileReader(
 									contents[i].getAbsolutePath()));
 						} catch (FileNotFoundException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 						if (br != null) {
@@ -165,7 +162,6 @@ public class IndexService extends Service {
 								this.services.add(new ParserService(name,
 										tmpExt));
 							} catch (IOException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						}
@@ -224,7 +220,7 @@ public class IndexService extends Service {
 			}
 			/*
 			 * while(mIsBound > 0){ try { Thread.sleep(1); } catch
-			 * (InterruptedException e) { // TODO Auto-generated catch block
+			 * (InterruptedException e) { 
 			 * e.printStackTrace(); } }
 			 */
 			if (c.bindService(new Intent(serviceName), mConnection,
@@ -267,7 +263,6 @@ public class IndexService extends Service {
 						}
 					}
 				} catch (RemoteException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				// build();
@@ -285,7 +280,7 @@ public class IndexService extends Service {
 			}
 		};
 	}
-
+	
 	public void crawl(File directory) throws IOException {
 		// Log.i(TAG, "Indexing directory " + directory.getAbsolutePath());
 		File[] contents = directory.listFiles();
@@ -348,7 +343,6 @@ public class IndexService extends Service {
 								}
 							}
 						} catch (Exception e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 					}

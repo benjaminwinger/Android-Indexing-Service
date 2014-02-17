@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
@@ -37,7 +37,7 @@ public class FileIndexer {
 		Directory dir;
 		try {
 			dir = FSDirectory.open(new File(FileIndexer.getRootStorageDir()));
-			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
+			Analyzer analyzer = new WhitespaceAnalyzer(Version.LUCENE_46);
 			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_46,
 					analyzer);
 			iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
@@ -57,8 +57,8 @@ public class FileIndexer {
 		this(filename, c);
 		this.listener = i;
 	}
-	
-	public boolean checkForIndex(String field, String value) throws Exception{
+
+	public boolean checkForIndex(String field, String value) throws Exception {
 		return this.searcher.checkForIndex(field, value);
 	}
 
@@ -100,6 +100,10 @@ public class FileIndexer {
 		}
 	}
 
+	// TODO - make the indexer restart indexing a file if it fails. When
+	// buildIndex is called from SearchService android.os.DeadObjectException is
+	// called on the SearchService from building larger indexes
+
 	public void buildIndex(List<String> contents, String filename) {
 		try {
 			for (int i = 0; i < contents.size(); i++) {
@@ -109,13 +113,14 @@ public class FileIndexer {
 							FileIndexer.getRootStorageDir());
 
 					Directory dir = FSDirectory.open(indexDirFile);
-					Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
+					Analyzer analyzer = new WhitespaceAnalyzer(
+							Version.LUCENE_46);
 					IndexWriterConfig iwc = new IndexWriterConfig(
 							Version.LUCENE_46, analyzer);
 					iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
 					writer = new IndexWriter(dir, iwc);
-					FileIndexer.Build(writer, new File(filename), i,
-							contents.get(i));
+					FileIndexer.Build(writer, new File(filename), i, contents
+							.get(i).toLowerCase());
 					writer.close();
 				} else {
 					Log.i(TAG, "Skipping " + filename + ":" + i
@@ -128,7 +133,7 @@ public class FileIndexer {
 
 			dir = FSDirectory.open(indexDirFile);
 
-			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
+			Analyzer analyzer = new WhitespaceAnalyzer(Version.LUCENE_46);
 			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_46,
 					analyzer);
 			iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);

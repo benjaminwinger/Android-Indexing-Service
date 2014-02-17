@@ -1,16 +1,12 @@
-/home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileIndex.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileIndexer.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileUtilities.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/FileSearcher.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/IndexingListener.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/indexdata/Result.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/indexservice/IndexService.java
-/home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/KryoWrapper.java
-/home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/Next.java
-/home/benjamin/workspace/AIS/target/generated-sources/r/com/bmw/android/ais/R.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/indexservice/SearchService.java
+/home/benjamin/workspace/AIS/target/generated-sources/r/com/bmw/android/ais/R.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/ais/MainActivity.java
-/home/benjamin/workspace/AIS/src/com/bmw/android/androidindexer/Word.java
 /home/benjamin/workspace/AIS/target/generated-sources/aidl/com/bmw/android/indexclient/MClientService.java
 /home/benjamin/workspace/AIS/target/generated-sources/r/com/bmw/android/ais/BuildConfig.java
 /home/benjamin/workspace/AIS/src/com/bmw/android/ais/AISApplication.java
