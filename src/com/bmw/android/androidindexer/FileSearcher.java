@@ -113,8 +113,8 @@ public class FileSearcher {
 		Query qry = null;
 		if (type == FileSearcher.QUERY_BOOLEAN) {
 			qry = new BooleanQuery();
-			((BooleanQuery) qry).add(new TermQuery(new Term(field, value)),
-					BooleanClause.Occur.MUST);
+			((BooleanQuery) qry).add(new TermQuery(new Term(field, "*" + value
+					+ "*")), BooleanClause.Occur.MUST);
 		} else if (type == FileSearcher.QUERY_STANDARD) {
 			try {
 				qry = new QueryParser(Version.LUCENE_46, field,
@@ -143,6 +143,8 @@ public class FileSearcher {
 					Log.e(TAG, "Error ", e);
 				}
 			}
+			// TODO - Needs to return not only the document but what word/phrase
+			// was found. This will need to use the Lucene Highlighter library
 			return docs;
 		} else {
 			Log.e(TAG, "Query Type: " + type + " not recognised");

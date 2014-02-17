@@ -38,9 +38,16 @@
 				<plugin>
 					<groupId>com.jayway.maven.plugins.android.generation2</groupId>
 					<artifactId>android-maven-plugin</artifactId>
-					<version>3.8.1</version>
+					<version>3.8.2</version>
 					<extensions>true</extensions>
-					<configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
+			<plugin>
+				<groupId>com.jayway.maven.plugins.android.generation2</groupId>
+				<artifactId>android-maven-plugin</artifactId>
+				<configuration>
 					<sdk>
 						<!-- platform as api level (api level 16 = platform 4.1) -->
 						<platform>17</platform>
@@ -54,9 +61,7 @@
 						</metaIncludes>
 					</apk>
 				</configuration>
-				</plugin>
-
+			</plugin>
 		</plugins>
-		</pluginManagement>
 	</build>
 </project>
