@@ -109,7 +109,7 @@ public class SearchService extends Service {
 		}
 
 		private boolean[] quickFind(String text) {
-			Document[] docs = SearchService.this.searcher.find(FileSearcher.QUERY_STANDARD, "text", text,
+			Document[] docs = SearchService.this.searcher.find(FileSearcher.QUERY_BOOLEAN, "text", text,
 					pages, "path", path);
 			boolean[] results = new boolean[pages];
 			for (int i = 0; i < docs.length; i++) {

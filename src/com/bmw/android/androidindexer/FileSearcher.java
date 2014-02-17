@@ -113,8 +113,8 @@ public class FileSearcher {
 		Query qry = null;
 		if (type == FileSearcher.QUERY_BOOLEAN) {
 			qry = new BooleanQuery();
-			((BooleanQuery) qry).add(new TermQuery(new Term(field, "*" + value
-					+ "*")), BooleanClause.Occur.MUST);
+			((BooleanQuery) qry).add(new TermQuery(new Term(field, value
+					)), BooleanClause.Occur.MUST);
 		} else if (type == FileSearcher.QUERY_STANDARD) {
 			try {
 				qry = new QueryParser(Version.LUCENE_46, field,
