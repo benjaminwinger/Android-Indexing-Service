@@ -3,6 +3,7 @@ package com.bmw.android.androidindexer;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
@@ -26,8 +27,6 @@ import android.util.Log;
 
 public class FileIndexer {
 	private static String TAG = "com.bmw.android.androidindexer.PDFIndexer";
-	private IndexingListener listener;
-	private Context context;
 	private IndexWriter writer;
 	private FileSearcher searcher;
 
@@ -47,15 +46,6 @@ public class FileIndexer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-
-	public FileIndexer(String filename, Context c) {
-		this.context = c;
-	}
-
-	public FileIndexer(String filename, IndexingListener i, Context c) {
-		this(filename, c);
-		this.listener = i;
 	}
 
 	public boolean checkForIndex(String field, String value) throws Exception {
@@ -104,14 +94,11 @@ public class FileIndexer {
 	// buildIndex is called from SearchService android.os.DeadObjectException is
 	// called on the SearchService from building larger indexes
 
-	public void buildIndex(List<String> contents, String filename) {
+	public int buildIndex(List<String> contents, String filename) {
+		File indexDirFile = new File(FileIndexer.getRootStorageDir());
 		try {
 			for (int i = 0; i < contents.size(); i++) {
 				if (!this.searcher.checkForIndex("id", filename + ":" + i)) {
-					boolean create = true;
-					File indexDirFile = new File(
-							FileIndexer.getRootStorageDir());
-
 					Directory dir = FSDirectory.open(indexDirFile);
 					Analyzer analyzer = new WhitespaceAnalyzer(
 							Version.LUCENE_46);
@@ -120,14 +107,13 @@ public class FileIndexer {
 					iwc.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
 					writer = new IndexWriter(dir, iwc);
 					FileIndexer.Build(writer, new File(filename), i, contents
-							.get(i).toLowerCase());
+							.get(i).toLowerCase(Locale.US));
 					writer.close();
 				} else {
 					Log.i(TAG, "Skipping " + filename + ":" + i
 							+ " Already in index");
 				}
 			}
-			File indexDirFile = new File(FileIndexer.getRootStorageDir());
 
 			Directory dir;
 
@@ -170,7 +156,9 @@ public class FileIndexer {
 			writer.close();
 		} catch (Exception e) {
 			Log.e(TAG, "Error", e);
+			return -1;
 		}
+		return 0;
 	}
 
 	public static String getStorageDir() {
