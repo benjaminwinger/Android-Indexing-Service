@@ -3,8 +3,6 @@
  * Original file: /home/benjamin/workspace/AIS/src/com/bmw/android/indexclient/MClientService.aidl
  */
 package com.bmw.android.indexclient;
-// This is a template file for the client service. Please create your own with a unique name.
-
 public interface MClientService extends android.os.IInterface
 {
 /** Local-side IPC implementation stub class. */
@@ -112,7 +110,7 @@ _data.recycle();
 /**
 	 * The indexer will query the contents of each page one at a time.
 	 * Sending all of the information at once is too large to transfer in some files.
-	 * @param page - the page of the file to be returned
+	 * @param page - the page to be returned from the file
 	 * @return - A string containing all of the words on the page
 	 */
 @Override public java.lang.String getWordsForPage(int page) throws android.os.RemoteException
@@ -168,7 +166,7 @@ public void loadFile(java.lang.String path) throws android.os.RemoteException;
 /**
 	 * The indexer will query the contents of each page one at a time.
 	 * Sending all of the information at once is too large to transfer in some files.
-	 * @param page - the page of the file to be returned
+	 * @param page - the page to be returned from the file
 	 * @return - A string containing all of the words on the page
 	 */
 public java.lang.String getWordsForPage(int page) throws android.os.RemoteException;
