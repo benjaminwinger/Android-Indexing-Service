@@ -30,6 +30,7 @@ public class PageResult implements Parcelable{
 	 */
 	private static final long serialVersionUID = -2204743540787327738L;
 	public List<String> text;
+	public int page;
 	public PageResult() {
 
 	}
@@ -48,8 +49,9 @@ public class PageResult implements Parcelable{
 		}
 	};
 	
-	public PageResult(List<String> text) {
+	public PageResult(List<String> text, int page) {
 		this.text = text;
+		this.page = page;
 	}
 
 	public int describeContents() {

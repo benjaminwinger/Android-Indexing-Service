@@ -24,8 +24,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.lucene.analysis.CachingTokenFilter;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.search.highlight.Fragmenter;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.SimpleSpanFragmenter;
+import org.apache.lucene.search.highlight.TokenSources;
+import org.apache.lucene.search.spans.SpanScorer;
+import org.apache.lucene.util.Version;
 
 import android.app.Service;
 import android.content.Intent;
@@ -45,7 +54,8 @@ public class SearchService extends Service {
 	// private final IBinder mBinder = new LocalBinder();
 
 	private final BSearchService1_0.Stub mBinder = new BSearchService1_0.Stub() {
-		public PageResult[] find(String doc, int type, String text, int numHits, int page) {
+		public PageResult[] find(String doc, int type, String text,
+				int numHits, int page) {
 			return SearchService.this.sm.find(doc, type, text, numHits, page);
 		}
 
@@ -57,8 +67,8 @@ public class SearchService extends Service {
 		public int load(final String filePath) {
 			return SearchService.this.load(filePath);
 		}
-		
-		public boolean unload(final String filePath){
+
+		public boolean unload(final String filePath) {
 			return SearchService.this.unload(filePath);
 		}
 	};
@@ -80,8 +90,8 @@ public class SearchService extends Service {
 			int maxPage) {
 		File indexDirFile = new File(FileIndexer.getRootStorageDir());
 		File[] dirContents = indexDirFile.listFiles();
-		for(int i = 0; i < dirContents.length; i++){
-			if(dirContents[i].getName().equals("write.lock")){
+		for (int i = 0; i < dirContents.length; i++) {
+			if (dirContents[i].getName().equals("write.lock")) {
 				return 1;
 			}
 		}
@@ -108,7 +118,7 @@ public class SearchService extends Service {
 	}
 
 	public int load(final String filePath) {
-		if(this.data.containsKey(filePath)){
+		if (this.data.containsKey(filePath)) {
 			return 1;
 		}
 		SearchData tmpData = new SearchData();
@@ -121,7 +131,9 @@ public class SearchService extends Service {
 		if ((tmp = this.searcher.getMetaFile(filePath)) != null) {
 			try {
 				IndexableField f = tmp.getField("pages");
-				if(f == null) Log.e(TAG, "Cannot find pages in metafile: " + tmp.toString());
+				if (f == null)
+					Log.e(TAG,
+							"Cannot find pages in metafile: " + tmp.toString());
 				tmpData.pages = f.numericValue().intValue();
 			} catch (Exception e) {
 				Log.e(TAG, "Error", e);
@@ -134,8 +146,8 @@ public class SearchService extends Service {
 		}
 
 	}
-	
-	public boolean unload(String path){
+
+	public boolean unload(String path) {
 		return this.data.remove(path) != null;
 	}
 
@@ -147,25 +159,19 @@ public class SearchService extends Service {
 
 		}
 
-		private PageResult[] find(String doc, int type, String text, int numHits, int page) {
-			/** TODO - Utilize the remaining function arguments 
-			 * 	Doc - the document to be searched; should replace local variable path if the document has already been loaded
-			 * 	numHits - the maximum number of results to load into the PageResult array
-			 * 	page - the page to start on if only loading a certain number of results
+		private PageResult[] find(String doc, int type, String text,
+				int numHits, int page) {
+			/**
+			 * TODO - Utilize the remaining function arguments Doc - the
+			 * document to be searched; should replace local variable path if
+			 * the document has already been loaded numHits - the maximum number
+			 * of results to load into the PageResult array page - the page to
+			 * start on if only loading a certain number of results
 			 * **/
 			SearchData tmpData = SearchService.this.data.get(doc);
-			Document[] docs = SearchService.this.searcher.find(type, "text", text,
-					tmpData.pages, "path", doc);
-			PageResult[] results = new PageResult[tmpData.pages];
-			for(int i = 0; i < results.length; i++){
-				results[i] = new PageResult(new ArrayList());
-			}
-			for (int i = 0; i < docs.length; i++) {
-				String result = "";
-				/** TODO - Add Highlighter Code to retrieve the generated phrase here **/
-				results[docs[i].getField("page").numericValue().intValue()].text.add(result);
-			}
-			return results;
+			PageResult[] docs = SearchService.this.searcher.find(type, "text",
+					text, tmpData.pages, "path", doc, 10);
+			return docs;
 		}
 	}
 

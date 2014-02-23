@@ -21,6 +21,9 @@ package com.bmw.android.androidindexer;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.logging.SimpleFormatter;
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;
@@ -37,11 +40,17 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 import android.util.Log;
+
+import com.bmw.android.indexdata.PageResult;
 
 public class FileSearcher {
 	private final String TAG = "com.bmw.android.androidindexer.FileSearcher";
@@ -126,14 +135,14 @@ public class FileSearcher {
 	// only complete words. This should be changed so that it will give results
 	// for the letters of the boolean search appearing in any part of a word
 
-	public Document[] find(int type, String field, String value,
-			int numResults, String constrainField, String constrainValue) {
+	public PageResult[] find(int type, String field, String value,
+			int numResults, String constrainField, String constrainValue, int maxResultsPerPage) {
 
 		Query qry = null;
 		if (type == FileSearcher.QUERY_BOOLEAN) {
 			qry = new BooleanQuery();
-			((BooleanQuery) qry).add(new TermQuery(new Term(field, value
-					)), BooleanClause.Occur.MUST);
+			((BooleanQuery) qry).add(new TermQuery(new Term(field, value)),
+					BooleanClause.Occur.MUST);
 		} else if (type == FileSearcher.QUERY_STANDARD) {
 			try {
 				qry = new QueryParser(Version.LUCENE_46, field,
@@ -162,12 +171,36 @@ public class FileSearcher {
 					Log.e(TAG, "Error ", e);
 				}
 			}
-			// TODO - Needs to return not only the document but what word/phrase
-			// was found. This will need to use the Lucene Highlighter library
-			return docs;
+			/**
+			 * TODO - Add Highlighter Code to retrieve the generated phrase here
+			 **/
+			PageResult[] results = new PageResult[docs.length];
+			for (int i = 0; i < docs.length; i++) {
+				Document d = docs[i];
+				String filename = d.get("id");
+				String contents = d.get("contents");
+				int page = Integer.parseInt(d.get("page"));
+			
+		        Highlighter highlighter = new Highlighter(new QueryScorer(qry));
+	            
+	            String[] frag = null;
+				try {
+					frag = highlighter.getBestFragments(new WhitespaceAnalyzer(Version.LUCENE_46), "contents", contents, maxResultsPerPage);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InvalidTokenOffsetsException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+	            				
+				results[i] = new PageResult(new ArrayList<String>(Arrays
+						.asList(frag)), page);
+			}
+			return results;
 		} else {
 			Log.e(TAG, "Query Type: " + type + " not recognised");
-			return new Document[0];
+			return new PageResult[0];
 		}
 	}
 }
