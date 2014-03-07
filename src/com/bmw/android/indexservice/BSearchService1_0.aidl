@@ -4,6 +4,17 @@ package com.bmw.android.indexservice;
 
 import com.bmw.android.indexdata.PageResult;
 
+/*
+ * 	BSearchService1_0.aidl
+ * 
+ * 	Interface definition file for the SearchService
+ * 	The client library uses this to interface with the search service
+ * 	This file should ideally be modified as little as possible so that there are
+ * 		not incompatibility problems with applications using older versions of the service
+ *	When it is upgraded, the older version must continue to be supported
+ * 
+ */
+
 interface BSearchService1_0 {
 	// VERSION 1.0
 	/**

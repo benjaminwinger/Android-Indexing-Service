@@ -28,6 +28,14 @@ import android.util.Log;
 
 import com.bmw.android.indexservice.IndexService;
 
+/*
+ * AISApplication.java
+ * 
+ * This file currently starts the IndexService upon application launch if it is not already started.
+ * 
+ * v0.3
+ * Implement alarmManager to start the service at user-defined intervals
+ */
 
 public class AISApplication extends Application {
     

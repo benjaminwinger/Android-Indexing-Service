@@ -23,6 +23,14 @@ import java.util.List;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+/*
+ * PageResult.java
+ * 
+ * Data structure that is passed by the search service to the client library that 
+ * stores what results from a search were found on a single page
+ * It will be encapsulated in an ArrayList 
+ */
+
 public class PageResult implements Parcelable{
 	/**
 	 * 

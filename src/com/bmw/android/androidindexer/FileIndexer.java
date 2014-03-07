@@ -18,6 +18,13 @@
  ******************************************************************************/
 package com.bmw.android.androidindexer;
 
+/*
+ * FileIndexer.java
+ * 
+ * Contains functions for building the lucene index.
+ *  
+ */
+
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -66,10 +73,6 @@ public class FileIndexer {
 		}
 	}
 
-	public boolean checkForIndex(String field, String value) throws Exception {
-		return this.searcher.checkForIndex(field, value);
-	}
-
 	public static void Build(IndexWriter writer, File file, int page,
 			String contents) {
 		if (file.canRead()) {
@@ -107,6 +110,11 @@ public class FileIndexer {
 			}
 		}
 	}
+	
+	public boolean checkForIndex(String field, String value) throws Exception {
+		return this.searcher.checkForIndex(field, value);
+	}
+
 
 	// TODO - make the indexer restart indexing a file if it fails. When
 	// buildIndex is called from SearchService android.os.DeadObjectException is
@@ -179,33 +187,6 @@ public class FileIndexer {
 		return 0;
 	}
 
-	public static String getStorageDir() {
-		boolean mExternalStorageAvailable = false;
-		boolean mExternalStorageWriteable = false;
-		String state = Environment.getExternalStorageState();
-
-		if (Environment.MEDIA_MOUNTED.equals(state)) {
-			// We can read and write the media
-			mExternalStorageAvailable = mExternalStorageWriteable = true;
-		} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-			// We can only read the media
-			mExternalStorageAvailable = true;
-			mExternalStorageWriteable = false;
-		} else {
-			// Something else is wrong. It may be one of many other states, but
-			// all we need
-			// to know is we can neither read nor write
-			mExternalStorageAvailable = mExternalStorageWriteable = false;
-		}
-
-		if (mExternalStorageAvailable && mExternalStorageWriteable) {
-			return Environment.getExternalStorageDirectory()
-					+ "/Android/data/com.bmw.android.ais/indexes";
-		} else {
-			return null;
-		}
-	}
-
 	public static String getRootStorageDir() {
 		boolean mExternalStorageAvailable = false;
 		boolean mExternalStorageWriteable = false;
@@ -233,51 +214,4 @@ public class FileIndexer {
 		}
 	}
 
-	public static String getFileDir(String filepath) {
-		String tmp;
-		if (filepath == null) {
-			return null;
-		}
-		if ((tmp = FileIndexer.getStorageDir()) != null) {
-			String file;
-			if (filepath.lastIndexOf("/") != -1) {
-				file = filepath.substring(filepath.lastIndexOf("/"),
-						filepath.lastIndexOf("."));
-			} else {
-				file = filepath;
-			}
-
-			return tmp + file + ".index";
-		} else {
-			return null;
-		}
-	}
-
-	public static boolean indexExists(String filepath) {
-		boolean mExternalStorageAvailable = false;
-		String state = Environment.getExternalStorageState();
-
-		if (Environment.MEDIA_MOUNTED.equals(state)) {
-			// We can read and write the media
-			mExternalStorageAvailable = true;
-		} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-			// We can only read the media
-			mExternalStorageAvailable = true;
-		}
-		int index1 = filepath.lastIndexOf("/");
-		int index2 = filepath.lastIndexOf(".");
-		if (index1 == -1 || index2 == -1) {
-			return false;
-		}
-		String file = filepath.substring(index1, index2);
-
-		String path = Environment.getExternalStorageDirectory()
-				+ "/Android/data/com.bmw.android.ais/indexes/" + file;
-		if (mExternalStorageAvailable) {
-			return (new File(path + ".index")).exists();
-		} else {
-			return false;
-		}
-
-	}
 }

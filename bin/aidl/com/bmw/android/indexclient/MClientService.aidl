@@ -2,6 +2,13 @@
 
 package com.bmw.android.indexclient;
 
+/*
+ *	MClientService.aidl
+ *	
+ *	Service interface file implemented by the client application that allows the
+ *	index service to parse files using the client application
+ *
+ */
 interface MClientService {
 	/**
 	 * Load libraries to access the file here so that it only has to be done once.

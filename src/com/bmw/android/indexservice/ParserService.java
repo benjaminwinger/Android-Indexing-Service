@@ -21,6 +21,11 @@ package com.bmw.android.indexservice;
 import java.io.Serializable;
 import java.util.List;
 
+/*
+ * ParserService.java
+ * Info object created for use in the IndexService for accessing client services
+ */
+
 public class ParserService implements Serializable{
 	private String name;
 	private List<String> extensions;

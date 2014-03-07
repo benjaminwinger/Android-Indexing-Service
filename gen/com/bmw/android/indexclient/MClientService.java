@@ -3,6 +3,13 @@
  * Original file: /home/benjamin/git/AIS/src/com/bmw/android/indexclient/MClientService.aidl
  */
 package com.bmw.android.indexclient;
+/*
+ *	MClientService.aidl
+ *	
+ *	Service interface file implemented by the client application that allows the
+ *	index service to parse files using the client application
+ *
+ */
 public interface MClientService extends android.os.IInterface
 {
 /** Local-side IPC implementation stub class. */

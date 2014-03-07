@@ -44,6 +44,16 @@ import com.bmw.android.androidindexer.FileIndexer;
 import com.bmw.android.androidindexer.FileSearcher;
 import com.bmw.android.indexdata.PageResult;
 
+/*
+ * 	SearchService.java
+ * 
+ * 	Service accessed by the client library with functions to search through the index
+ * 
+ * 	v0.3
+ * 	Make the indexer search from disk for multi-file searches and search from memory
+ * 	for single file searches (load file into memory in load function).
+ */
+
 public class SearchService extends Service {
 	private static final String TAG = "com.bmw.android.indexservice.SearchService";
 	private SearchManager sm;

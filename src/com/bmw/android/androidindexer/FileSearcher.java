@@ -51,6 +51,18 @@ import android.util.Log;
 
 import com.bmw.android.indexdata.PageResult;
 
+/*
+ * FileSearcher.java
+ * 
+ * Contains functions for searching the lucene index
+ * 
+ * v0.3
+ * Add capacity to check if the file needs to be updated by
+ *  	comparing the index metadata's modified date with the file's modified
+ *  	date
+ *  Highlighter code needs to be tested
+ */
+
 public class FileSearcher {
 	private final String TAG = "com.bmw.android.androidindexer.FileSearcher";
 	private IndexSearcher indexSearcher;
