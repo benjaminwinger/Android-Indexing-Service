@@ -1,21 +1,21 @@
-/**
- *  Copyright 2014 Benjamin Winger
- *  
- *  This file is part of The Android Indexing Service.
+/*******************************************************************************
+ * Copyright 2014 Benjamin Winger.
  *
- *   The Android Indexing Service is free software: you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, either version 3 of the License, or
- *   (at your option) any later version.
+ * This file is part of Android Indexing Service.
  *
- *   The Android Indexing Service is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details.
+ * Android Indexing Service is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *   You should have received a copy of the GNU General Public License
- *   along with The Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
- */
+ * Android Indexing Service is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
 
 package com.bmw.android.ais;
 
@@ -51,12 +51,11 @@ import java.io.IOException;
 
 public class MainActivity extends Activity {
 
-	private IndexSearcher indexSearcher;
-
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		/*new Thread(new Runnable() {
-			@Override
+        this.setContentView(R.layout.activity_main);
+        /*new Thread(new Runnable() {
+            @Override
 			public void run() {
 				if (!isMyServiceRunning()) {
 					Intent serviceIntent = new Intent(MainActivity.this, IndexService.class);
@@ -72,7 +71,7 @@ public class MainActivity extends Activity {
 			this.startService(serviceIntent);
         }
 		this.setContentView(new LinearLayout(this));
-		IndexReader indexReader = null;
+        IndexReader indexReader;
         IndexSearcher indexSearcher = null;
         try{
              File indexDirFile = new File(FileIndexer.getRootStorageDir());
@@ -82,33 +81,36 @@ public class MainActivity extends Activity {
         }catch(IOException ioe){
             ioe.printStackTrace();
         }
+        if (indexSearcher != null) {
 
-        this.indexSearcher = indexSearcher;
-        
-        String field = "text";
-        String value = "Benjamin";
-        Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_46);
-        QueryParser parser = new QueryParser(Version.LUCENE_46, field, analyzer);
+            // I don't remember what this line was supposed to do
+            ((AISApplication) this.getApplication()).indexSearcher = indexSearcher;
 
-        try {
-           Log.e("Main", "Searching...");
-           Query query = null;
-		try {
-			query = parser.parse(value);
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-           ScoreDoc[] hits = indexSearcher.search(query, 10).scoreDocs;
-           Log.e("Main", "Found " + hits.length + " results");
-           for (int i = 0; i < hits.length; i++) {
-                Document doc = indexSearcher.doc(hits[i].doc);
-                Log.e("Main", "Found term at: " + doc.getField("path").stringValue() +" " + doc.getField("page").numericValue().longValue());
-           }
+            String field = "text";
+            String value = "Benjamin";
+            Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_47);
+            QueryParser parser = new QueryParser(Version.LUCENE_47, field, analyzer);
 
-        } catch (IOException e) {
-        	Log.e("Main", "Error ", e);
-            Log.e("Main", "Failed to search");
+            try {
+                Log.e("Main", "Searching...");
+                Query query = null;
+                try {
+                    query = parser.parse(value);
+                } catch (ParseException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+                ScoreDoc[] hits = indexSearcher.search(query, 10).scoreDocs;
+                Log.e("Main", "Found " + hits.length + " results");
+                for (ScoreDoc hit : hits) {
+                    Document doc = indexSearcher.doc(hit.doc);
+                    Log.e("Main", "Found term at: " + doc.getField("id").stringValue() + " " + doc.getField("page").numericValue().longValue());
+                }
+
+            } catch (IOException e) {
+                Log.e("Main", "Error ", e);
+                Log.e("Main", "Failed to search");
+            }
         }
 	}
 

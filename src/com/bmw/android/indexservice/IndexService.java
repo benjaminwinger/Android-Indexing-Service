@@ -1,21 +1,22 @@
 /*******************************************************************************
  * Copyright 2014 Benjamin Winger.
- * 
- * This file is part of AIS.
- * 
- * AIS is free software: you can redistribute it and/or modify
+ *
+ * This file is part of Android Indexing Service.
+ *
+ * Android Indexing Service is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
- * AIS is distributed in the hope that it will be useful,
+ *
+ * Android Indexing Service is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with The Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
+ * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
+
 package com.bmw.android.indexservice;
 
 import android.app.Notification;
@@ -59,14 +60,15 @@ import java.util.Queue;
  */
 
 public class IndexService extends Service {
-	private static String TAG = "com.bmw.android.indexservice.IndexService";
-	private ServerSocket serverSocket;
-	private Thread serverThread = null;
-	private static final int SERVER_PORT = 6002;
+    private static final int SERVER_PORT = 6002;
+    private static String TAG = "com.bmw.android.indexservice.IndexService";
+    private final IBinder mBinder = new LocalBinder();
+    protected long startWait;
+    protected boolean interrupt;
+    protected long indexTime;
+    private ServerSocket serverSocket;
+    private Thread serverThread = null;
 	private NotificationManager nm;
-	protected long startWait;
-	protected boolean interrupt;
-	protected long indexTime;
 	private int mIsBound = 0;
 	private boolean doneCrawling;
 	private ArrayList<ParserService> services;
@@ -75,315 +77,228 @@ public class IndexService extends Service {
 	private FileIndexer indexer;
 
 	public IndexService() {
-		this.services = new ArrayList<ParserService>();
-		// new Thread(new ServerThread()).start();
-	}
+        this.services = new ArrayList<ParserService>();
+        // new Thread(new ServerThread()).start();
+    }
 
-	@Override
-	public void onCreate() {
-		nm = (NotificationManager) this
-				.getSystemService(this.NOTIFICATION_SERVICE);
-		IndexService.this.notifyPersistent(
-				getText(R.string.notification_indexer_started), 1);
-		try {
-			boolean mExternalStorageAvailable = false;
-			boolean mExternalStorageWriteable = false;
-			String state = Environment.getExternalStorageState();
+    public static String getIconLocation(String filename) {
+        return FileIndexer.getRootStorageDir() + "/icons/" + filename + ".png";
+    }
 
-			if (Environment.MEDIA_MOUNTED.equals(state)) {
-				// We can read and write the media
-				mExternalStorageAvailable = mExternalStorageWriteable = true;
-			} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-				// We can only read the media
-				mExternalStorageAvailable = true;
-				mExternalStorageWriteable = false;
-			} else {
-				// Something else is wrong. It may be one of many other states,
-				// but
-				// all we need
-				// to know is we can neither read nor write
-				mExternalStorageAvailable = mExternalStorageWriteable = false;
-			}
+    @Override
+    public void onCreate() {
+        nm = (NotificationManager) this
+                .getSystemService(NOTIFICATION_SERVICE);
+        IndexService.this.notifyPersistent(
+                getText(R.string.notification_indexer_started), 1);
+        try {
+            boolean mExternalStorageAvailable;
+            boolean mExternalStorageWriteable;
+            String state = Environment.getExternalStorageState();
 
-			if (mExternalStorageAvailable && mExternalStorageWriteable) {
-				this.loadServices(new File(Environment
-						.getExternalStorageDirectory() + "/Android/data"));
-			} else {
-				notify("Error: External Storage not mounted", 2);
-				return;
-			}
-			this.loadServices(Environment.getExternalStorageDirectory());
-			this.indexer = new FileIndexer();
-			this.pIndexes = new LinkedList<Indexable>();
-			this.doneCrawling = false;
-			new Thread(new Runnable() {
-				public void run() {
-					while (true) {
-						try {
-							Thread.sleep(10);
-						} catch (InterruptedException e1) {
-							e1.printStackTrace();
-						}
-						Indexable tmp = pIndexes.poll();
-						if (tmp != null) {
-							if (tmp.tmpData == null || tmp.tmpData.size() == 0) {
-								Log.v(TAG, "Invalid File");
-								IndexService.this.notify(
-										"Problem indexing file "
-												+ new File(tmp.currentPath)
-														.getName()
-												+ ": Invalid file",
-										R.string.notification_indexer_error);
+            if (Environment.MEDIA_MOUNTED.equals(state)) {
+                // We can read and write the media
+                mExternalStorageAvailable = mExternalStorageWriteable = true;
+            } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+                // We can only read the media
+                mExternalStorageAvailable = true;
+                mExternalStorageWriteable = false;
+            } else {
+                // Something else is wrong. It may be one of many other states,
+                // but
+                // all we need
+                // to know is we can neither read nor write
+                mExternalStorageAvailable = mExternalStorageWriteable = false;
+            }
 
-							} else {
-								Log.i(TAG, "Testing Lucene on index: "
-										+ tmp.currentPath);
-								try {
-									indexer.buildIndex(tmp.tmpData,
-											tmp.currentPath);
-								} catch (Exception e) {
-									Log.e(TAG, "Error ", e);
-								}
-							}
-						}
-						if (doneCrawling && mIsBound == 0
-								&& pIndexes.size() == 0) {
+            if (mExternalStorageAvailable && mExternalStorageWriteable) {
+                this.loadServices(new File(Environment
+                        .getExternalStorageDirectory() + "/Android/data"));
+            } else {
+                notify("Error: External Storage not mounted", 2);
+                return;
+            }
+            this.loadServices(Environment.getExternalStorageDirectory());
+            this.indexer = new FileIndexer();
+            this.pIndexes = new LinkedList<Indexable>();
+            this.doneCrawling = false;
+            new Thread(new Runnable() {
+                public void run() {
+                    while (true) {
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e1) {
+                            e1.printStackTrace();
+                        }
+                        Indexable tmp = pIndexes.poll();
+                        if (tmp != null) {
+                            if (tmp.tmpData == null || tmp.tmpData.size() == 0) {
+                                Log.v(TAG, "Invalid File");
+                                IndexService.this.notify(
+                                        "Problem indexing file "
+                                                + new File(tmp.currentPath)
+                                                .getName()
+                                                + ": Invalid file",
+                                        R.string.notification_indexer_error
+                                );
 
-							IndexService.this.stopSelf();
-						}
-					}
-				}
-			}).start();
-			crawl(new File("/"));
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-	}
+                            } else {
+                                Log.i(TAG, "Testing Lucene on index: "
+                                        + tmp.currentPath);
+                                try {
+                                    indexer.buildIndex(tmp.tmpData,
+                                            tmp.currentPath);
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Error ", e);
+                                }
+                            }
+                        }
+                        if (doneCrawling && mIsBound == 0
+                                && pIndexes.size() == 0) {
+                            Log.i(TAG, "Done Indexing, Closing... ");
+                            indexer.close();
+                            doneCrawling = false;
+                            IndexService.this.stopSelf();
+                        }
+                    }
+                }
+            }).start();
+            crawl(new File("/"));
+            this.doneCrawling = true;
+        } catch (IOException e1) {
+            e1.printStackTrace();
+        }
+    }
 
 	public void loadServices(File directory) {
-		File[] contents = directory.listFiles();
-		for (int i = 0; i < contents.length; i++) {
-			if (contents[i].canRead()) {
-				if (contents[i].isFile()) {
-					if (contents[i].getName().toLowerCase().endsWith(".is")) {
-						BufferedReader br = null;
-						try {
-							br = new BufferedReader(new FileReader(
-									contents[i].getAbsolutePath()));
-						} catch (FileNotFoundException e) {
-							e.printStackTrace();
-						}
-						if (br != null) {
-							try {
-								String name = br.readLine();
-								Log.i(TAG, "Found service of name: " + name);
-								ArrayList<String> tmpExt = new ArrayList<String>();
-								if (name != null) {
-									String tmp;
-									while ((tmp = br.readLine()) != null) {
-										tmpExt.add(tmp);
+        File[] contents = directory.listFiles();
+        for (File content : contents) {
+            if (content.canRead()) {
+                if (content.isFile()) {
+                    if (content.getName().toLowerCase().endsWith(".is")) {
+                        BufferedReader br = null;
+                        try {
+                            br = new BufferedReader(new FileReader(
+                                    content.getAbsolutePath()));
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
+                        if (br != null) {
+                            try {
+                                String name = br.readLine();
+                                Log.i(TAG, "Found service of name: " + name);
+                                ArrayList<String> tmpExt = new ArrayList<String>();
+                                if (name != null) {
+                                    String tmp;
+                                    while ((tmp = br.readLine()) != null) {
+                                        tmpExt.add(tmp);
                                         Log.i(TAG, "Found Extension: " + tmp);
-									}
-								}
-								br.close();
-								this.services.add(new ParserService(name,
-										tmpExt));
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					}
-				} else {
-					this.loadServices(contents[i]);
-				}
-			}
-		}
-	}
+                                    }
+                                }
+                                br.close();
+                                this.services.add(new ParserService(name,
+                                        tmpExt));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                } else {
+                    this.loadServices(content);
+                }
+            }
+        }
+    }
 
 	public void onDestroy() {
-		nm.cancel(1);
-	}
-
-	private class Indexable {
-		private ArrayList<String> tmpData;
-		private String currentPath;
-		private IBinder mService;
-		private String serviceName = null;
-		private RemoteBuilder builder;
-
-		public Indexable(ArrayList<String> tmpData, String currentPath,
-				IBinder mService, String serviceName, RemoteBuilder builder) {
-			super();
-			this.tmpData = tmpData;
-			this.currentPath = currentPath;
-			this.mService = mService;
-			this.serviceName = serviceName;
-			this.builder = builder;
-		}
-
-	}
-
-	private class RemoteBuilder {
-		private ArrayList<String> tmpData;
-		private String currentPath;
-		private IBinder mService;
-		private String serviceName = null;
-
-		public RemoteBuilder(String path, String serviceName) {
-			this.currentPath = path;
-			this.serviceName = serviceName;
-			this.doBindService(getApplicationContext());
-		}
-
-		void doBindService(Context c) {
-			// Establish a connection with the service. We use an explicit
-			// class name because we want a specific service implementation that
-			// we know will be running in our own process (and thus won't be
-			// supporting component replacement by other applications).
-			Log.i(TAG, "Binding to service...");
-
-			if (serviceName == null) {
-				return;
-			}
-			/*
-			 * while(mIsBound > 0){ try { Thread.sleep(1); } catch
-			 * (InterruptedException e) { e.printStackTrace(); } }
-			 */
-			if (c.bindService(new Intent(serviceName), mConnection,
-					Context.BIND_AUTO_CREATE)) {
-				mIsBound++;
-			}
-			Log.i(TAG, "Service is bound = " + mIsBound);
-		}
-
-		public void doUnbindService(Context c) {
-			if (mIsBound > 0) {
-				// Detach our existing connection.
-				c.unbindService(mConnection);
-				mIsBound--;
-				/*
-				 * if (mIsBound == 0) { nm.cancel(1); stopSelf(); }
-				 */
-			}
-		}
-
-		private ServiceConnection mConnection = new ServiceConnection() {
-			// Called when the connection with the service is established
-			public void onServiceConnected(ComponentName className,
-					IBinder service) {
-				// Following the example above for an AIDL interface,
-				// this gets an instance of the IRemoteInterface, which we can
-				// use
-				// to call on the service
-				mService = service;
-				Log.i(TAG, "Service: " + mService);
-				try {
-                    MClientService tmp = MClientService.Stub
-                            .asInterface(mService);
-                    tmp.loadFile(currentPath);
-                    tmpData = new ArrayList<String>();
-                    int pages = tmp.getPageCount();
-                    for (int i = 0; i < pages; i++) {
-                        tmpData.add(tmp.getWordsForPage(i));
-                    }
-				} catch (RemoteException e) {
-					e.printStackTrace();
-				}
-				// build();
-				pIndexes.add(new Indexable(tmpData, currentPath, mService,
-						serviceName, RemoteBuilder.this));
-				doUnbindService(getApplicationContext());
-			}
-
-			// Called when the connection with the service disconnects
-			// unexpectedly
-			public void onServiceDisconnected(ComponentName className) {
-				Log.e(TAG, "Service has unexpectedly disconnected");
-				mService = null;
-				mIsBound--;
-			}
-		};
-	}
+        nm.cancel(1);
+    }
 
 	public void crawl(File directory) throws IOException {
 		// Log.i(TAG, "Indexing directory " + directory.getAbsolutePath());
 		File[] contents = directory.listFiles();
-		for (int i = 0; i < contents.length; i++) {
-			if (contents[i].canRead()) {
-				if (contents[i].isFile()) {
-					String serviceName = null;
-					for (int j = 0; j < services.size(); j++) {
-						int mLoc = contents[i].getName().lastIndexOf(".") + 1;
-						if (mLoc != 0) {
-							boolean found = services.get(j).checkExtension(
-									contents[i].getName().substring(mLoc)
-											.toLowerCase());
-							if (found) {
-								serviceName = services.get(j).getName();
-							}
-						}
-					}
-					if (serviceName != null) {
-						String files = "";
-						try {
-							BufferedReader br = new BufferedReader(
-									new FileReader(
-											FileIndexer.getRootStorageDir()
-													+ "/FileLocations.txt"));
-							String tmp;
-							while ((tmp = br.readLine()) != null) {
-								files = files.concat(tmp);
-								files = files.concat("\n");
-							}
-							br.close();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						if (!files.contains(contents[i].getAbsolutePath())) {
-							try {
-								BufferedWriter bw = new BufferedWriter(
-										new FileWriter(
-												FileIndexer.getRootStorageDir()
-														+ "/FileLocations.txt"));
-								bw.append(files + contents[i].getAbsolutePath()
-										+ "\n");
-								bw.close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-						try {
-							if (indexer.checkForIndex("id",
-									contents[i].getAbsolutePath() + ":meta")) {
-								Log.i(TAG, "Found index; skipping.");
-							} else {
-								Log.i(TAG, "Index not found, building index");
-								try {
-									new RemoteBuilder(
-											contents[i].getAbsolutePath(),
-											serviceName);
-								} catch (Exception e) {
-									Log.e(TAG, "" + e.getMessage());
-								}
-							}
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			}
-		}
-		for (int i = 0; i < contents.length; i++) {
-			if (contents[i].canRead()) {
-				if (contents[i].isDirectory()
-						&& contents[i].getAbsolutePath().equals(
-								contents[i].getCanonicalPath())) {
-					this.crawl(contents[i]);
-				}
-			}
-		}
-		this.doneCrawling = true;
-	}
+        if (contents != null) {
+            for (File content : contents) {
+                if (content.canRead()) {
+                    if (content.isFile()) {
+                        String serviceName = null;
+                        int size = services.size();
+                        for (int j = 0; j < size; j++) {
+                            int mLoc = content.getName().lastIndexOf(".") + 1;
+                            if (mLoc != 0) {
+                                boolean found = services.get(j).checkExtension(
+                                        content.getName().substring(mLoc)
+                                                .toLowerCase()
+                                );
+                                if (found) {
+                                    serviceName = services.get(j).getName();
+                                }
+                            }
+                        }
+                        if (serviceName != null) {
+                            String files = "";
+                            try {
+                                BufferedReader br = new BufferedReader(
+                                        new FileReader(
+                                                FileIndexer.getRootStorageDir()
+                                                        + "/FileLocations.txt"
+                                        )
+                                );
+                                String tmp;
+                                while ((tmp = br.readLine()) != null) {
+                                    files = files.concat(tmp);
+                                    files = files.concat("\n");
+                                }
+                                br.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            if (!files.contains(content.getAbsolutePath())) {
+                                try {
+                                    BufferedWriter bw = new BufferedWriter(
+                                            new FileWriter(
+                                                    FileIndexer.getRootStorageDir()
+                                                            + "/FileLocations.txt"
+                                            )
+                                    );
+                                    bw.append(files).append(content.getAbsolutePath()).append("\n");
+                                    bw.close();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                            try {
+                                if (indexer.checkForIndex("id",
+                                        content.getAbsolutePath() + ":meta")) {
+                                    Log.i(TAG, "Found index; skipping.");
+                                } else {
+                                    Log.i(TAG, "Index not found, building index");
+                                    try {
+                                        new RemoteBuilder(
+                                                content.getAbsolutePath(),
+                                                serviceName);
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "" + e.getMessage());
+                                    }
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            }
+            for (File content : contents) {
+                if (content.canRead()) {
+                    if (content.isDirectory()
+                            && content.getAbsolutePath().equals(
+                            content.getCanonicalPath())) {
+                        this.crawl(content);
+                    }
+                }
+            }
+        }
+    }
 
 	public void notify(CharSequence c, int id) {
 		Notification notification = new Notification(R.drawable.file_icon, c,
@@ -406,21 +321,116 @@ public class IndexService extends Service {
 		nm.notify(1, not);
 	}
 
-	public static String getIconLocation(String filename) {
-		return FileIndexer.getRootStorageDir() + "/icons/" + filename + ".png";
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
+
+    private class Indexable {
+        private ArrayList<String> tmpData;
+        private String currentPath;
+        private IBinder mService;
+        private String serviceName = null;
+        private RemoteBuilder builder;
+
+        public Indexable(ArrayList<String> tmpData, String currentPath,
+                         IBinder mService, String serviceName, RemoteBuilder builder) {
+            super();
+            this.tmpData = tmpData;
+            this.currentPath = currentPath;
+            this.mService = mService;
+            this.serviceName = serviceName;
+            this.builder = builder;
+        }
+
+    }
+
+    private class RemoteBuilder {
+        private ArrayList<String> tmpData;
+        private String currentPath;
+        private IBinder mService;
+        private String serviceName = null;
+
+        public RemoteBuilder(String path, String serviceName) {
+            this.currentPath = path;
+            this.serviceName = serviceName;
+            this.doBindService(getApplicationContext());
+        }
+
+        void doBindService(Context c) {
+            // Establish a connection with the service. We use an explicit
+            // class name because we want a specific service implementation that
+            // we know will be running in our own process (and thus won't be
+            // supporting component replacement by other applications).
+            Log.i(TAG, "Binding to service...");
+
+            if (serviceName == null) {
+                return;
+            }
+            /*
+             * while(mIsBound > 0){ try { Thread.sleep(1); } catch
+			 * (InterruptedException e) { e.printStackTrace(); } }
+			 */
+            if (c.bindService(new Intent(serviceName), mConnection,
+                    Context.BIND_AUTO_CREATE)) {
+                mIsBound++;
+            }
+            Log.i(TAG, "Service is bound = " + mIsBound);
+        }
+
+        public void doUnbindService(Context c) {
+            if (mIsBound > 0) {
+                // Detach our existing connection.
+                c.unbindService(mConnection);
+                mIsBound--;
+                /*
+				 * if (mIsBound == 0) { nm.cancel(1); stopSelf(); }
+				 */
+            }
+        }
+
+        private ServiceConnection mConnection = new ServiceConnection() {
+            // Called when the connection with the service is established
+            public void onServiceConnected(ComponentName className,
+                                           IBinder service) {
+                // Following the example above for an AIDL interface,
+                // this gets an instance of the IRemoteInterface, which we can
+                // use
+                // to call on the service
+                mService = service;
+                Log.i(TAG, "Service: " + mService);
+                try {
+                    MClientService tmp = MClientService.Stub
+                            .asInterface(mService);
+                    tmp.loadFile(currentPath);
+                    tmpData = new ArrayList<String>();
+                    int pages = tmp.getPageCount();
+                    for (int i = 0; i < pages; i++) {
+                        tmpData.add(tmp.getWordsForPage(i));
+                    }
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+                // build();
+                pIndexes.add(new Indexable(tmpData, currentPath, mService,
+                        serviceName, RemoteBuilder.this));
+                doUnbindService(getApplicationContext());
+            }
+
+            // Called when the connection with the service disconnects
+            // unexpectedly
+            public void onServiceDisconnected(ComponentName className) {
+                Log.e(TAG, "Service has unexpectedly disconnected");
+                mService = null;
+                mIsBound--;
+            }
+        };
 	}
 
-	private final IBinder mBinder = new LocalBinder();
-
-	public class LocalBinder extends Binder {
-		IndexService getService() {
-			return IndexService.this;
-		}
-	}
-
-	@Override
-	public IBinder onBind(Intent intent) {
-		return mBinder;
-	}
+    public class LocalBinder extends Binder {
+        IndexService getService() {
+            return IndexService.this;
+        }
+    }
 
 }
