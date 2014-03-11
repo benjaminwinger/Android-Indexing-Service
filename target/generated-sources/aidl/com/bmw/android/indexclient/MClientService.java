@@ -1,28 +1,15 @@
-/*******************************************************************************
- * Copyright 2014 Benjamin Winger.
- * 
- * This file is part of AIS.
- * 
- * AIS is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * AIS is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with The Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
 /*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: /home/benjamin/workspace/AIS/src/com/bmw/android/indexclient/MClientService.aidl
+ * Original file: /home/benjamin/workspace/android-indexing-service/src/com/bmw/android/indexclient/MClientService.aidl
  */
 package com.bmw.android.indexclient;
-// This is a template file for the client service. Please create your own with a unique name.
-
+/*
+ *	MClientService.aidl
+ *	
+ *	Service interface file implemented by the client application that allows the
+ *	index service to parse files using the client application
+ *
+ */
 public interface MClientService extends android.os.IInterface
 {
 /** Local-side IPC implementation stub class. */
@@ -130,7 +117,7 @@ _data.recycle();
 /**
 	 * The indexer will query the contents of each page one at a time.
 	 * Sending all of the information at once is too large to transfer in some files.
-	 * @param page - the page of the file to be returned
+	 * @param page - the page to be returned from the file
 	 * @return - A string containing all of the words on the page
 	 */
 @Override public java.lang.String getWordsForPage(int page) throws android.os.RemoteException
@@ -186,7 +173,7 @@ public void loadFile(java.lang.String path) throws android.os.RemoteException;
 /**
 	 * The indexer will query the contents of each page one at a time.
 	 * Sending all of the information at once is too large to transfer in some files.
-	 * @param page - the page of the file to be returned
+	 * @param page - the page to be returned from the file
 	 * @return - A string containing all of the words on the page
 	 */
 public java.lang.String getWordsForPage(int page) throws android.os.RemoteException;

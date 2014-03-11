@@ -18,11 +18,9 @@
  ******************************************************************************/
 package com.bmw.android.androidindexer;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.logging.SimpleFormatter;
+import android.util.Log;
+
+import com.bmw.android.indexdata.PageResult;
 
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
 import org.apache.lucene.document.Document;
@@ -42,14 +40,14 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
-import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
-import android.util.Log;
-
-import com.bmw.android.indexdata.PageResult;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /*
  * FileSearcher.java

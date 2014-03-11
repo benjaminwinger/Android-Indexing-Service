@@ -18,10 +18,10 @@
  ******************************************************************************/
 package com.bmw.android.indexdata;
 
-import java.util.List;
-
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import java.util.List;
 
 /*
  * PageResult.java

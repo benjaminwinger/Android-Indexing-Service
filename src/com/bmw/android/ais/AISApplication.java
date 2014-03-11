@@ -18,8 +18,6 @@
  ******************************************************************************/
 package com.bmw.android.ais;
 
-import org.apache.lucene.search.IndexSearcher;
-
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.app.Application;
@@ -27,6 +25,8 @@ import android.content.Context;
 import android.util.Log;
 
 import com.bmw.android.indexservice.IndexService;
+
+import org.apache.lucene.search.IndexSearcher;
 
 /*
  * AISApplication.java

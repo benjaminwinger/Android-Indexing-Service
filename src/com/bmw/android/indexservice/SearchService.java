@@ -18,23 +18,6 @@
  ******************************************************************************/
 package com.bmw.android.indexservice;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import org.apache.lucene.analysis.CachingTokenFilter;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.search.highlight.Fragmenter;
-import org.apache.lucene.search.highlight.Highlighter;
-import org.apache.lucene.search.highlight.SimpleSpanFragmenter;
-import org.apache.lucene.search.highlight.TokenSources;
-import org.apache.lucene.search.spans.SpanScorer;
-import org.apache.lucene.util.Version;
-
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -43,6 +26,13 @@ import android.util.Log;
 import com.bmw.android.androidindexer.FileIndexer;
 import com.bmw.android.androidindexer.FileSearcher;
 import com.bmw.android.indexdata.PageResult;
+
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.List;
 
 /*
  * 	SearchService.java

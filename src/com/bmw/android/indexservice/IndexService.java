@@ -18,20 +18,6 @@
  ******************************************************************************/
 package com.bmw.android.indexservice;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
-
-import org.apache.lucene.search.IndexSearcher;
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -50,6 +36,20 @@ import com.bmw.android.ais.R;
 import com.bmw.android.androidindexer.FileIndexer;
 import com.bmw.android.indexclient.MClientService;
 
+import org.apache.lucene.search.IndexSearcher;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+
 /*
  * IndexService.java
  * 
@@ -67,7 +67,7 @@ public class IndexService extends Service {
 	protected long startWait;
 	protected boolean interrupt;
 	protected long indexTime;
-	private int mIsBound;
+	private int mIsBound = 0;
 	private boolean doneCrawling;
 	private ArrayList<ParserService> services;
 	private Queue<Indexable> pIndexes;
@@ -182,6 +182,7 @@ public class IndexService extends Service {
 									String tmp;
 									while ((tmp = br.readLine()) != null) {
 										tmpExt.add(tmp);
+                                        Log.i(TAG, "Found Extension: " + tmp);
 									}
 								}
 								br.close();
@@ -277,16 +278,14 @@ public class IndexService extends Service {
 				mService = service;
 				Log.i(TAG, "Service: " + mService);
 				try {
-					if (serviceName.equals("com.bmw.android.quickpdf.CONNECT")) {
-						MClientService tmp = MClientService.Stub
-								.asInterface(mService);
-						tmp.loadFile(currentPath);
-						tmpData = new ArrayList<String>();
-						int pages = tmp.getPageCount();
-						for (int i = 0; i < pages; i++) {
-							tmpData.add(tmp.getWordsForPage(i));
-						}
-					}
+                    MClientService tmp = MClientService.Stub
+                            .asInterface(mService);
+                    tmp.loadFile(currentPath);
+                    tmpData = new ArrayList<String>();
+                    int pages = tmp.getPageCount();
+                    for (int i = 0; i < pages; i++) {
+                        tmpData.add(tmp.getWordsForPage(i));
+                    }
 				} catch (RemoteException e) {
 					e.printStackTrace();
 				}
@@ -315,7 +314,7 @@ public class IndexService extends Service {
 					String serviceName = null;
 					for (int j = 0; j < services.size(); j++) {
 						int mLoc = contents[i].getName().lastIndexOf(".") + 1;
-						if (mLoc != -1) {
+						if (mLoc != 0) {
 							boolean found = services.get(j).checkExtension(
 									contents[i].getName().substring(mLoc)
 											.toLowerCase());

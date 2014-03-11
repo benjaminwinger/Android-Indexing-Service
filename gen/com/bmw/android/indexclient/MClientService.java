@@ -1,6 +1,8 @@
+/*___Generated_by_IDEA___*/
+
 /*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: /home/benjamin/git/AIS/src/com/bmw/android/indexclient/MClientService.aidl
+ * Original file: /home/benjamin/workspace/android-indexing-service/src/com/bmw/android/indexclient/MClientService.aidl
  */
 package com.bmw.android.indexclient;
 /*
