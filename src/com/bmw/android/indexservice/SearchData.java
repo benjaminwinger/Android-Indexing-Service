@@ -24,10 +24,11 @@ import java.util.ArrayList;
 /*
  *	SearchData.java
  *
- * 	Some container - must verify
+ * 	Some container - must verify 
+ *	I think it is deprecated code that was replaced with PageResut
  */
 
 public class SearchData {
-    int pages;
-    ArrayList<String> text = new ArrayList<String>();
+	int pages;
+	ArrayList<String> text = new ArrayList<String>();
 }
