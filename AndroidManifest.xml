@@ -17,12 +17,14 @@
   ~ along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+<manifest
     package="com.bmw.android.ais"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:versionCode="1"
     android:versionName="0.1">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <uses-sdk
         android:minSdkVersion="7"
@@ -59,6 +61,13 @@
                 <action android:name="com.bmw.android.indexservice.SEARCH"></action>
             </intent-filter>
         </service>
+
+        <receiver android:name="com.bmw.android.alarm.AutoStart">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"></action>
+            </intent-filter>
+        </receiver>
+        <receiver android:name="com.bmw.android.alarm.Alarm"/>
     </application>
 
 </manifest>

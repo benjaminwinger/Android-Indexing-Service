@@ -20,17 +20,12 @@
 package com.bmw.android.ais;
 
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
-import android.content.Context;
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.widget.LinearLayout;
 
 import com.bmw.android.androidindexer.FileIndexer;
-import com.bmw.android.indexservice.IndexService;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -53,79 +48,51 @@ public class MainActivity extends Activity {
 
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-        this.setContentView(R.layout.activity_main);
-        /*new Thread(new Runnable() {
-            @Override
-			public void run() {
-				if (!isMyServiceRunning()) {
-					Intent serviceIntent = new Intent(MainActivity.this, IndexService.class);
-					startService(serviceIntent);
-					Log.e("AIS", "Started Service");
-				} else {
-					Log.e("AIS", "Service Already Running");
-				}
-			}
-		}).start();*/
-		if(!this.isMyServiceRunning()){
-        	Intent serviceIntent = new Intent(this, IndexService.class);
-			this.startService(serviceIntent);
-        }
+		this.setContentView(R.layout.activity_main);
 		this.setContentView(new LinearLayout(this));
-        IndexReader indexReader;
-        IndexSearcher indexSearcher = null;
-        try{
-             File indexDirFile = new File(FileIndexer.getRootStorageDir());
-             Directory dir = FSDirectory.open(indexDirFile);
-             indexReader  = DirectoryReader.open(dir);
-             indexSearcher = new IndexSearcher(indexReader);
-        }catch(IOException ioe){
-            ioe.printStackTrace();
-        }
-        if (indexSearcher != null) {
+		IndexReader indexReader;
+		IndexSearcher indexSearcher = null;
+		try {
+			File indexDirFile = new File(FileIndexer.getRootStorageDir());
+			Directory dir = FSDirectory.open(indexDirFile);
+			indexReader = DirectoryReader.open(dir);
+			indexSearcher = new IndexSearcher(indexReader);
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		}
+		if (indexSearcher != null) {
 
-            // I don't remember what this line was supposed to do
-            ((AISApplication) this.getApplication()).indexSearcher = indexSearcher;
+			// I don't remember what this line was supposed to do
+			((AISApplication) this.getApplication()).indexSearcher = indexSearcher;
 
-            String field = "text";
-            String value = "Benjamin";
-            Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_47);
-            QueryParser parser = new QueryParser(Version.LUCENE_47, field, analyzer);
+			String field = "text";
+			String value = "Benjamin";
+			Analyzer analyzer = new StandardAnalyzer(Version.LUCENE_47);
+			QueryParser parser = new QueryParser(Version.LUCENE_47, field, analyzer);
 
-            try {
-                Log.e("Main", "Searching...");
-                Query query = null;
-                try {
-                    query = parser.parse(value);
-                } catch (ParseException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-                ScoreDoc[] hits = indexSearcher.search(query, 10).scoreDocs;
-                Log.e("Main", "Found " + hits.length + " results");
-                for (ScoreDoc hit : hits) {
-                    Document doc = indexSearcher.doc(hit.doc);
-                    Log.e("Main", "Found term at: " + doc.getField("id").stringValue() + " " + doc.getField("page").numericValue().longValue());
-                }
+			try {
+				Log.e("Main", "Searching...");
+				Query query = null;
+				try {
+					query = parser.parse(value);
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				ScoreDoc[] hits = indexSearcher.search(query, 10).scoreDocs;
+				Log.e("Main", "Found " + hits.length + " results");
+				for (ScoreDoc hit : hits) {
+					Document doc = indexSearcher.doc(hit.doc);
+					Log.e("Main", "Found term at: " + doc.getField("id").stringValue() + " " + doc.getField("page").numericValue().longValue());
+				}
 
-            } catch (IOException e) {
-                Log.e("Main", "Error ", e);
-                Log.e("Main", "Failed to search");
-            }
-        }
-	}
-
-	private boolean isMyServiceRunning() {
-		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-		for (RunningServiceInfo service : manager
-				.getRunningServices(Integer.MAX_VALUE)) {
-			if (IndexService.class.getName().equals(
-					service.service.getClassName())) {
-				return true;
+			} catch (IOException e) {
+				Log.e("Main", "Error ", e);
+				Log.e("Main", "Failed to search");
 			}
 		}
-		return false;
 	}
-		
+
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.

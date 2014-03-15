@@ -17,39 +17,10 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
+/*___Generated_by_IDEA___*/
+
 package com.bmw.android.ais;
 
-import android.app.Application;
-import android.util.Log;
-
-import org.apache.lucene.search.IndexSearcher;
-
-/*
- * AISApplication.java
- * 
- * This file currently starts the IndexService upon application launch if it is not already started.
- * 
- * v0.3
- * Implement alarmManager to start the service at user-defined intervals
- */
-
-public class AISApplication extends Application {
-
-    private final static String TAG = "com.bmw.android.ais";
-	protected IndexSearcher indexSearcher; // TODO - Use this as a global searcher for whenever the aplication is running
-
-    public void onCreate() {
-        super.onCreate();
-    }
-
-    /**
-     * Called by system when low on memory.
-     * Currently only logs.
-     */
-    public void onLowMemory() {
-        super.onLowMemory();
-        Log.w(TAG, "onLowMemory"); // TODO: free some memory (caches) in native code
-    }
-
-
+/* This stub is only used by the IDE. It is NOT the Manifest class actually packed into the APK */
+public final class Manifest {
 }

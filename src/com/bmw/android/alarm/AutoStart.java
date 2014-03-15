@@ -17,39 +17,17 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.ais;
+package com.bmw.android.alarm;
 
-import android.app.Application;
-import android.util.Log;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
 
-import org.apache.lucene.search.IndexSearcher;
+public class AutoStart extends BroadcastReceiver {
 
-/*
- * AISApplication.java
- * 
- * This file currently starts the IndexService upon application launch if it is not already started.
- * 
- * v0.3
- * Implement alarmManager to start the service at user-defined intervals
- */
-
-public class AISApplication extends Application {
-
-    private final static String TAG = "com.bmw.android.ais";
-	protected IndexSearcher indexSearcher; // TODO - Use this as a global searcher for whenever the aplication is running
-
-    public void onCreate() {
-        super.onCreate();
-    }
-
-    /**
-     * Called by system when low on memory.
-     * Currently only logs.
-     */
-    public void onLowMemory() {
-        super.onLowMemory();
-        Log.w(TAG, "onLowMemory"); // TODO: free some memory (caches) in native code
-    }
-
-
+	public void onReceive(Context context, Intent intent) {
+		if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
+			Alarm.SetAlarm(context);
+		}
+	}
 }

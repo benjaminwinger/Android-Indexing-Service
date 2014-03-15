@@ -82,18 +82,14 @@ public class IndexService extends Service {
 	private IndexSearcher indexSearcher;
 	private FileIndexer indexer;
 
-	public IndexService() {
-        this.services = new ArrayList<ParserService>();
-        // new Thread(new ServerThread()).start();
-    }
-
     public static String getIconLocation(String filename) {
         return FileIndexer.getRootStorageDir() + "/icons/" + filename + ".png";
     }
 
     @Override
     public void onCreate() {
-        nm = (NotificationManager) this
+	    this.services = new ArrayList<ParserService>();
+	    nm = (NotificationManager) this
                 .getSystemService(NOTIFICATION_SERVICE);
         IndexService.this.notifyPersistent(
                 getText(R.string.notification_indexer_started), 1);
