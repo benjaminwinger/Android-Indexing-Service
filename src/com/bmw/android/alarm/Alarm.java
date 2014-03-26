@@ -31,11 +31,12 @@ import com.bmw.android.indexservice.IndexService;
 public class Alarm extends BroadcastReceiver {
 
 	public static void SetAlarm(Context context) {
-		AlarmManager am = (AlarmManager) context.getSystemService("Context.ALARM_SERVICE");
+		AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 		Intent i = new Intent(context, Alarm.class);
 		PendingIntent pi = PendingIntent.getBroadcast(context, 0, i, 0);
 		// sets the alarm to repeat every 10 minutes
 		// TODO - Make alarm time change according to a user preference
+		if(am != null)
 		am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), getMinutes(10), pi);
 	}
 

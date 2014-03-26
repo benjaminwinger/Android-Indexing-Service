@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.bmw.android</groupId>
     <artifactId>AIS</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.3.0</version>
     <packaging>apk</packaging>
     <name>AndroidIndexingService</name>
     <dependencies>

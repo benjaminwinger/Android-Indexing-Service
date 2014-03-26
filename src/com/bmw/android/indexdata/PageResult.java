@@ -22,6 +22,7 @@ package com.bmw.android.indexdata;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -50,11 +51,13 @@ public class PageResult implements Parcelable {
     public int page;
 
     public PageResult() {
-
+		this.text = new ArrayList<String>();
     }
 
     private PageResult(Parcel in) {
+	    this();
         in.readList(this.text, null);
+	    this.page = in.readInt();
     }
 
     public PageResult(List<String> text, int page) {
@@ -68,6 +71,7 @@ public class PageResult implements Parcelable {
 
     public void writeToParcel(Parcel out, int arg1) {
         out.writeList(text);
+	    out.writeInt(this.page);
     }
 
 }

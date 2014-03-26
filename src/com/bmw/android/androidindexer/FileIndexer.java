@@ -30,7 +30,7 @@ import android.os.Environment;
 import android.util.Log;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
@@ -48,7 +48,6 @@ import org.apache.lucene.util.Version;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 
 public class FileIndexer {
     private static String TAG = "com.bmw.android.androidindexer.FileIndexer";
@@ -61,7 +60,7 @@ public class FileIndexer {
 		Directory dir;
 		try {
 			dir = FSDirectory.open(new File(FileIndexer.getRootStorageDir()));
-            Analyzer analyzer = new WhitespaceAnalyzer(Version.LUCENE_47);
+            Analyzer analyzer = new SimpleAnalyzer(Version.LUCENE_47);
             IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_47,
                     analyzer);
             iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
@@ -80,6 +79,8 @@ public class FileIndexer {
 						+ page);
 				Document doc = new Document();
 				doc.add(new StringField("id", file.getPath() + ":" + page,
+						Field.Store.YES));
+				doc.add(new StringField("path", file.getPath(),
 						Field.Store.YES));
 				doc.add(new LongField("modified", file.lastModified(),
 						Field.Store.YES));
@@ -143,7 +144,7 @@ public class FileIndexer {
             for (int i = 0; i < contents.size(); i++) {
                 if (!this.searcher.checkForIndex("id", filename + ":" + i)) {
                     FileIndexer.Build(writer, new File(filename), i, contents
-                            .get(i).toLowerCase(Locale.US));
+                            .get(i));
 
                 } else {
                     Log.i(TAG, "Skipping " + filename + ":" + i
@@ -188,7 +189,7 @@ public class FileIndexer {
             writer.forceMerge(1);
             writer.close();
         } catch (IOException e) {
-            e.printStackTrace();
+	        Log.e(TAG, "Error while closing indexwriter", e);
         }
     }
 }

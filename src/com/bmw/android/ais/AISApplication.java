@@ -48,7 +48,7 @@ public class AISApplication extends Application {
      */
     public void onLowMemory() {
         super.onLowMemory();
-        Log.w(TAG, "onLowMemory"); // TODO: free some memory (caches) in native code
+        Log.w(TAG, "onLowMemory");
     }
 
 

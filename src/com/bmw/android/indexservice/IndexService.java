@@ -62,7 +62,8 @@ import java.util.Queue;
  *      need to be indexed by each service and connect to each service only once
  *       - Create a progress indicator by using the total size of the documents found while crawling
  *       as each document is indexed, update the main notification with the filesizeindex/totalfilesize
-  *      noting the amount as a percentage
+ *      noting the amount as a percentage
+ *       - Make the indexer index every file and directory on the device, indexing contents for files where possible
  */
 
 public class IndexService extends Service {

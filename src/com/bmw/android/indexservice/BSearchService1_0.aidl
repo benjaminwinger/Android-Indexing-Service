@@ -12,7 +12,11 @@ import com.bmw.android.indexdata.PageResult;
  * 	This file should ideally be modified as little as possible so that there are
  * 		not incompatibility problems with applications using older versions of the service
  *	When it is upgraded, the older version must continue to be supported
- * 
+ *
+ *  TODO - Features to be added:
+ *      Filename Search
+ *      Path Search
+ *      Filtering results by directory or by a list of multiple files
  */
 
 interface BSearchService1_0 {

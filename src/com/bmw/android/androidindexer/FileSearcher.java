@@ -23,7 +23,7 @@ import android.util.Log;
 
 import com.bmw.android.indexdata.PageResult;
 
-import org.apache.lucene.analysis.core.WhitespaceAnalyzer;
+import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -38,6 +38,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.highlight.Highlighter;
 import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.apache.lucene.search.highlight.QueryScorer;
@@ -49,6 +50,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /*
  * FileSearcher.java
@@ -63,8 +65,15 @@ import java.util.Arrays;
  */
 
 public class FileSearcher {
+
+	// NOTE - Standard searches take significantly longer than boolean ones due to their use of the highlighter
+	//          which can make them take a long time to finish for common terms. They will be faster when the
+	//          number of results is actually restricted but boolean searches should be recommended where speed is
+    //          important
     public static final int QUERY_BOOLEAN = 0;
     public static final int QUERY_STANDARD = 1;
+
+
     private final String TAG = "com.bmw.android.androidindexer.FileSearcher";
     private IndexSearcher indexSearcher;
 
@@ -147,13 +156,14 @@ public class FileSearcher {
 
         Query qry = null;
         if (type == FileSearcher.QUERY_BOOLEAN) {
+	        String[] terms = value.split(" ");
             qry = new BooleanQuery();
-            ((BooleanQuery) qry).add(new TermQuery(new Term(field, value)),
+            ((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + value +"*")),
                     BooleanClause.Occur.MUST);
         } else if (type == FileSearcher.QUERY_STANDARD) {
             try {
                 qry = new QueryParser(Version.LUCENE_47, field,
-                        new WhitespaceAnalyzer(Version.LUCENE_47)).parse(value);
+                        new SimpleAnalyzer(Version.LUCENE_47)).parse(value);
             } catch (ParseException e) {
                 e.printStackTrace();
             }
@@ -178,33 +188,49 @@ public class FileSearcher {
                     Log.e(TAG, "Error ", e);
                 }
             }
+	        Log.i(TAG, "Found instance of term in " + docs.length + " documents");
             /**
-             * TODO - Add Highlighter Code to retrieve the generated phrase here
+             * TODO - Add Highlighter Code to retrieve the generated phrase here (In progress)
              **/
-            PageResult[] results = new PageResult[docs.length];
-            for (int i = 0; i < docs.length; i++) {
-                Document d = docs[i];
-                //String filename = d.get("id");
-                String contents = d.get("contents");
-                int page = Integer.parseInt(d.get("page"));
+            try {
+	            PageResult[] results = new PageResult[docs.length];
+	            for (int i = 0; i < docs.length; i++) {
+		            Document d = docs[i];
+		            int page = Integer.parseInt(d.get("page"));
+		            if(type != FileSearcher.QUERY_BOOLEAN) {
+			            String contents = d.get("text");
+			            Highlighter highlighter = new Highlighter(new QueryScorer(qry));
 
-                Highlighter highlighter = new Highlighter(new QueryScorer(qry));
+			            String[] frag = null;
+			            try {
+				            // TODO - the following line causes a nullpointerexception in Highlighter.getBestFragments -> Analyzer.tokenstream -> ReusableStringReader.setValue
+				            // Was accessing wrong field, re-test and verify
+				            frag = highlighter.getBestFragments(new SimpleAnalyzer(Version.LUCENE_47), "text", contents, maxResultsPerPage);
+			            } catch (IOException e) {
+				            Log.e(TAG, "Error while reading index", e);
+			            } catch (InvalidTokenOffsetsException e) {
+				            Log.e(TAG, "Error while highlighting", e);
+			            }
+			            Log.i(TAG, "Frags: " + frag.length + " " + frag + " " + frag[0]);
+			            List<String> tmpList = new ArrayList<String>(Arrays
+					            .asList(frag != null ? frag : new String[0]));
+			            Log.i(TAG, "list " + tmpList.getClass().getName());
+			            results[i] = new PageResult(tmpList, page);
+			            Log.i(TAG, "" + results[i]);
+		            }
+					else {
+			            ArrayList<String> tmp = new ArrayList<String>();
+			            tmp.add(value);
+			            results[i] = new PageResult(tmp, page);
+		            }
 
-                String[] frag = null;
-                try {
-                    frag = highlighter.getBestFragments(new WhitespaceAnalyzer(Version.LUCENE_47), "contents", contents, maxResultsPerPage);
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (InvalidTokenOffsetsException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-
-                results[i] = new PageResult(new ArrayList<String>(Arrays
-                        .asList(frag != null ? frag : new String[0])), page);
-            }
-            return results;
+	            }
+	            Log.i(TAG, "" +results.length);
+	            return results;
+            }catch(Exception e){
+		        Log.e("TAG", "Error while Highlighting", e);
+	            return null;
+	        }
         } else {
             Log.e(TAG, "Query Type: " + type + " not recognised");
             return new PageResult[0];

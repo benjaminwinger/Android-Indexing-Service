@@ -171,6 +171,7 @@ public class SearchService extends Service {
              * of results to load into the PageResult array page - the page to
              * start on if only loading a certain number of results
              * **/
+			Log.i(TAG, "Received request to search for: " + text);
             SearchData tmpData = SearchService.this.data.get(doc);
             return SearchService.this.searcher.find(type, "text",
                     text, tmpData.pages, "path", doc, 10);
