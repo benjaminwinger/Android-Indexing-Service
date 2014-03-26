@@ -83,4 +83,80 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile><!-- release profile. uses keystore defined in keystore.* properties. signs and zipaligns the app to the target folder-->
+            <id>release</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <defaultGoal>install</defaultGoal>
+                <finalName>${project.artifactId}-${project.version}</finalName>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jar-plugin</artifactId>
+                        <version>2.4</version>
+                        <executions>
+                            <execution>
+                                <id>signing</id>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <phase>package</phase>
+                                <inherited>true</inherited>
+
+                                <configuration>
+                                    <keystore>
+                                        my-release-key.keystore
+                                    </keystore>
+                                    <storepass>mypassword</storepass>
+                                    <keypass>mypassword</keypass>
+                                    <alias>mykeystore</alias>
+                                    <verbose>true</verbose>
+                                    <verify>true</verify>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+                        <artifactId>android-maven-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <configuration>
+                            <sign>
+                                <debug>false</debug>
+                            </sign>
+                        </configuration>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.jayway.maven.plugins.android.generation2</groupId>
+                        <artifactId>android-maven-plugin</artifactId>
+                        <configuration>
+                            <zipalign>
+                                <verbose>true</verbose>
+                                <skip>false</skip>
+                                <!-- defaults to true -->
+                                <inputApk>${project.build.directory}/${project.artifactId}-${project.version}.apk</inputApk>
+                                <outputApk>${project.build.directory}/${project.artifactId}-${project.version}-RELEASE.apk
+                                </outputApk>
+                            </zipalign>
+
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>zipalign</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>zipalign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

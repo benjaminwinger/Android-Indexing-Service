@@ -5,6 +5,9 @@
       <configuration>
         <option name="UPDATE_PROPERTY_FILES" value="true" />
         <option name="COMPILE_CUSTOM_GENERATED_SOURCES" value="false" />
+        <resOverlayFolders>
+          <path>/res-overlay</path>
+        </resOverlayFolders>
       </configuration>
     </facet>
   </component>
