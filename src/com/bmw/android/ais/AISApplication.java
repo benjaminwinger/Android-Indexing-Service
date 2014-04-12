@@ -36,7 +36,7 @@ import org.apache.lucene.search.IndexSearcher;
 public class AISApplication extends Application {
 
     private final static String TAG = "com.bmw.android.ais";
-	protected IndexSearcher indexSearcher; // TODO - Use this as a global searcher for whenever the aplication is running
+	protected IndexSearcher indexSearcher; // TODO - Use this as a global searcher for whenever the aplication is running (is this necessary?)
 
     public void onCreate() {
         super.onCreate();

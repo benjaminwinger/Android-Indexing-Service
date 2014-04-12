@@ -13,32 +13,52 @@ import com.bmw.android.indexdata.PageResult;
  * 		not incompatibility problems with applications using older versions of the service
  *	When it is upgraded, the older version must continue to be supported
  *
- *  TODO - Features to be added:
- *      Filename Search
- *      Path Search
- *      Filtering results by directory or by a list of multiple files
+ *
  */
 
 interface BSearchService1_0 {
 	// VERSION 1.0
 	/**
 	 * Used to search file contents
-	 * @param 	doc - the name of the document that should be searched. This allows metadata 
+	 * @param 	doc - the name of the document that should be searched. This allows metadata
 	 *				for multiple files to be in the search service's memory at once.
 	 * 			type - allows the client to specify what type of results it wants to receive
-	 * 			text - the search query
-	 * 			numHits - the number of results the client wants to receive
+	 * 			text - the search term
+	 * 			numHits - the maximum number of results to return
 	 * 			page - the starting page for results (if results end up on a page
 	 *				 before this page they are pushed to the end of the returned list)
 	 * @return a list containing the terms found that matched the query and what page of the document they appear on.
 	 */
 	PageResult[] find(String doc, int type, String text, int numHits, int page);
+
+    /**
+     * Used to search the contents of multiple files
+     * @param 	docs - A list containing the names of the documents that should be searched. This allows metadata
+     *				for multiple files to be in the search service's memory at once. An empty list will
+     *              cause the search service to search all files on the device
+     *              Directories can also be included for search of their contents
+     * 			type - allows the client to specify what type of results it wants to receive
+     * 			text - the search term
+     * 			numHits - the maximum number of results to return per file, a value of -1 means no limit
+     * @return a list containing the terms found that matched the query and what page of the document they appear on.
+     */
+    PageResult[] findIn(inout List<String> docs, int type, String text, int numHits);
+
+    /**
+     *  Used to search for file names
+     * @param   dir - the root directory for the search.
+     *          type - allows the client to specify how to filter the files
+     *          text - the search term
+     *          numHits - the maximum number of results to return
+    */
+	List<String> findName(inout List<String> docs, int type, String text, int numHits);
 	
 	/**
 	 * used to send file contents to the indexing service. Because of the limitations of 
 	 * the service communicsation system the information may have to be sent in chunks as
 	 * there can only be a maximum of about 1MB in the buffer at a time (which is shared 
 	 * among all applications). The client class sends data in chunks that do not exceed 256KB,
+	 * currently pages cannot exceed 256KB as the data transfer will fail
 	 * @param 	filePath - the location of the file to be built; used by the indexer to identify the file
 	 *			text - the text to be added to the index
 	 *			page - the page upon which the chunk of the file that is being transferred starts. 
@@ -53,6 +73,8 @@ interface BSearchService1_0 {
 	
 	/**
 	 * Tells the indexer to load a file's metadata into memory for use in searches.
+	 * The function can be called multiple times to load several files. Files remain loaded until the unload
+	 * function is called. Please make sure to call unload when you are finished with the document.
 	 * @param filePath - the location of the file to prepare; is also the identifier for the file's data in the index
 	 * @return 0 if the file exists in the index and was not already loaded; 
 	 *	 			1 if the file was already loaded; 
@@ -66,5 +88,10 @@ interface BSearchService1_0 {
 	 * @param filePath - the location of the file; used to identify which file should be unloaded
 	 * @return true if the file exists in the index; false otherwise
 	 */
-	boolean unload(String filePath);	
+	boolean unload(String filePath);
+
+	/**
+	 *  Tells the search service to cancel any searches that are currently running
+	*/
+	boolean interrupt();
 }

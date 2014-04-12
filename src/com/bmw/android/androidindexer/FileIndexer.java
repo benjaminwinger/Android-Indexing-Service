@@ -50,9 +50,9 @@ import java.io.IOException;
 import java.util.List;
 
 public class FileIndexer {
-    private static String TAG = "com.bmw.android.androidindexer.FileIndexer";
-    private IndexWriter writer;
-    private FileSearcher searcher;
+	private static String TAG = "com.bmw.android.androidindexer.FileIndexer";
+	private IndexWriter writer;
+	private FileSearcher searcher;
 
 	public FileIndexer() {
 		super();
@@ -60,11 +60,11 @@ public class FileIndexer {
 		Directory dir;
 		try {
 			dir = FSDirectory.open(new File(FileIndexer.getRootStorageDir()));
-            Analyzer analyzer = new SimpleAnalyzer(Version.LUCENE_47);
-            IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_47,
-                    analyzer);
-            iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
-            this.writer = new IndexWriter(dir, iwc);
+			Analyzer analyzer = new SimpleAnalyzer(Version.LUCENE_47);
+			IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_47,
+					analyzer);
+			iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
+			this.writer = new IndexWriter(dir, iwc);
 			this.writer.commit();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -72,14 +72,14 @@ public class FileIndexer {
 	}
 
 	public static void Build(IndexWriter writer, File file, int page,
-			String contents) {
+	                         String contents) {
 		if (file.canRead()) {
 			try {
 				Log.i(TAG, "Started Indexing file: " + file.getName() + " "
 						+ page);
 				Document doc = new Document();
 				doc.add(new StringField("id", file.getPath() + ":" + page,
-						Field.Store.YES));
+						Field.Store.NO));
 				doc.add(new StringField("path", file.getPath(),
 						Field.Store.YES));
 				doc.add(new LongField("modified", file.lastModified(),
@@ -102,94 +102,101 @@ public class FileIndexer {
 		}
 	}
 
-    public static String getRootStorageDir() {
-        boolean mExternalStorageAvailable;
-        boolean mExternalStorageWriteable;
-        String state = Environment.getExternalStorageState();
+	public static String getRootStorageDir() {
+		boolean mExternalStorageAvailable;
+		boolean mExternalStorageWriteable;
+		String state = Environment.getExternalStorageState();
 
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            // We can read and write the media
-            mExternalStorageAvailable = mExternalStorageWriteable = true;
-        } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-            // We can only read the media
-            mExternalStorageAvailable = true;
-            mExternalStorageWriteable = false;
-        } else {
-            // Something else is wrong. It may be one of many other states, but
-            // all we need
-            // to know is we can neither read nor write
-            mExternalStorageAvailable = mExternalStorageWriteable = false;
-        }
+		if (Environment.MEDIA_MOUNTED.equals(state)) {
+			// We can read and write the media
+			mExternalStorageAvailable = mExternalStorageWriteable = true;
+		} else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+			// We can only read the media
+			mExternalStorageAvailable = true;
+			mExternalStorageWriteable = false;
+		} else {
+			// Something else is wrong. It may be one of many other states, but
+			// all we need
+			// to know is we can neither read nor write
+			mExternalStorageAvailable = mExternalStorageWriteable = false;
+		}
 
-        if (mExternalStorageAvailable && mExternalStorageWriteable) {
-            return Environment.getExternalStorageDirectory()
-                    + "/Android/data/com.bmw.android.ais";
-        } else {
-            return null;
-        }
-    }
+		if (mExternalStorageAvailable && mExternalStorageWriteable) {
+			return Environment.getExternalStorageDirectory()
+					+ "/Android/data/com.bmw.android.ais";
+		} else {
+			return null;
+		}
+	}
 
 
 	// TODO - make the indexer restart indexing a file if it fails. When
 	// buildIndex is called from SearchService android.os.DeadObjectException is
 	// called on the SearchService from building larger indexes
 
-    public boolean checkForIndex(String field, String value) throws Exception {
-        return this.searcher.checkForIndex(field, value);
-    }
+	public boolean checkForIndex(String field, String value) throws Exception {
+		return this.searcher.checkForIndex(field, value);
+	}
 
-    public int buildIndex(List<String> contents, String filename) {
-        File indexDirFile = new File(FileIndexer.getRootStorageDir());
-        try {
-            for (int i = 0; i < contents.size(); i++) {
-                if (!this.searcher.checkForIndex("id", filename + ":" + i)) {
-                    FileIndexer.Build(writer, new File(filename), i, contents
-                            .get(i));
+	public int buildIndex(String filename){
+		try {
+			Log.i(TAG, "Writing Metadata");
+			Document doc = new Document();
+			File file = new File(filename);
+			doc.add(new StringField("id", file.getPath() + ":meta", Field.Store.NO));
+			doc.add(new LongField("modified", file.lastModified(), Field.Store.YES));
+			doc.add(new StringField("path", file.getAbsolutePath(), Field.Store.YES));
+			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+				writer.addDocument(doc);
+			} else {
+				// Todo - Use updateDocument to delete
+				// the page that exists.
+				// must create a field that combines
+				// path and page number as if path is
+				// used, it will delete all pages of the
+				// document in the index
+				writer.updateDocument(new Term("id", file.getPath() + ":meta"),
+						doc);
+				writer.commit();
+			}
+			Log.i(TAG, "Done creating metadata");
+			// Must only call ForceMerge and Commit once per document as they are very resource heavy operations
+			writer.commit();
+		} catch (Exception e) {
+			Log.e(TAG, "Error", e);
+			return -1;
+		}
+		return 0;
+	}
 
-                } else {
-                    Log.i(TAG, "Skipping " + filename + ":" + i
-                            + " Already in index");
-                }
-            }
-            Log.i(TAG, "Writing Metadata");
-            Document doc = new Document();
-            File file = new File(filename);
-            doc.add(new StringField("id", file.getPath() + ":meta",
-                    Field.Store.YES));
-            doc.add(new IntField("pages", contents.size(), Field.Store.YES));
-            doc.add(new LongField("modified", file.lastModified(),
-                    Field.Store.NO));
-            if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
-                writer.addDocument(doc);
-            } else {
-                // Todo - Use updateDocument to delete
-                // the page that exists.
-                // must create a field that combines
-                // path and page number as if path is
-                // used, it will delete all pages of the
-                // document in the index
-                writer.updateDocument(new Term("id", file.getPath() + ":meta"),
-                        doc);
-                writer.commit();
-            }
-            Log.i(TAG, "Done creating metadata");
-            // Must only call ForceMerge and Commit once per document as they are very resource heavy operations
-            writer.commit();
-        } catch (Exception e) {
-            Log.e(TAG, "Error", e);
-            return -1;
-        }
-        return 0;
-    }
+	public int buildIndex(List<String> contents, String filename) {
+		try {
+			for (int i = 0; i < contents.size(); i++) {
+				if (!this.searcher.checkForIndex("id", filename + ":" + i)) {
+					FileIndexer.Build(writer, new File(filename), i, contents
+							.get(i));
 
-    public void close() {
-        try {
-            writer.commit();
-            // TODO - Determine how much of a speed increase is gained while searching after ForceMerge
-            writer.forceMerge(1);
-            writer.close();
-        } catch (IOException e) {
-	        Log.e(TAG, "Error while closing indexwriter", e);
-        }
-    }
+				} else {
+					Log.i(TAG, "Skipping " + filename + ":" + i
+							+ " Already in index");
+				}
+			}
+			buildIndex(filename);
+		} catch (Exception e) {
+			Log.e(TAG, "Error", e);
+			return -1;
+		}
+		return 0;
+	}
+
+	public void close() {
+		try {
+			writer.commit();
+			// TODO - Determine how much of a speed increase is gained while searching after ForceMerge
+			writer.forceMerge(1);
+			writer.close();
+		} catch (IOException e) {
+			Log.e(TAG, "Error while closing indexwriter", e);
+		}
+	}
 }

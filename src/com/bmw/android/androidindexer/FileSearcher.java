@@ -76,6 +76,7 @@ public class FileSearcher {
 
     private final String TAG = "com.bmw.android.androidindexer.FileSearcher";
     private IndexSearcher indexSearcher;
+	private boolean interrupt = false;
 
     public FileSearcher() {
         IndexReader indexReader;
@@ -146,29 +147,205 @@ public class FileSearcher {
         return doc;
     }
 
-    // TODO - Need to decide what types of searches to return. Currently, the
-    // boolean search will return individual letters in a word and beyond that
-    // only complete words. This should be changed so that it will give results
-    // for the letters of the boolean search appearing in any part of a word
+	public List<String> findName(String term, String field, List<String> constrainValues, String constrainField, int maxResults, int type){
+		Query qry = null;
+		if(this.interrupt){
+			this.interrupt = true;
+			return null;
+		}
+		if (type == FileSearcher.QUERY_BOOLEAN) {
+			String[] terms = term.split(" ");
+			qry = new BooleanQuery();
+			((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + term +"*")),
+					BooleanClause.Occur.MUST);
+		} else if (type == FileSearcher.QUERY_STANDARD) {
+			try {
+				qry = new QueryParser(Version.LUCENE_47, field,
+						new SimpleAnalyzer(Version.LUCENE_47)).parse(term);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+			// qry.add(new Query(field, value));
+		}
+		if(this.interrupt){
+			this.interrupt = true;
+			return null;
+		}
+		if (qry != null) {
+			BooleanQuery cqry = new BooleanQuery();
+			for (String s : constrainValues) {
+				cqry.add(new TermQuery(new Term(constrainField, s)),
+						BooleanClause.Occur.MUST);
+			}
+			Filter filter = new QueryWrapperFilter(cqry);
+			ScoreDoc[] hits = null;
+			try {
+				hits = indexSearcher.search(qry, filter, -1).scoreDocs;
+			} catch (IOException e) {
+				Log.e(TAG, "Error ", e);
+			}
+			if(this.interrupt){
+				this.interrupt = true;
+				return null;
+			}
+			ArrayList<String> docs = new ArrayList<String>();
+			for (int i = 0; i < hits.length && i < maxResults ; i++) {
+				try {
+					Document tmp =indexSearcher.doc(hits[i].doc);
+					docs.add(tmp.get("path"));
+				} catch (IOException e) {
+					Log.e(TAG, "Error ", e);
+				}
+			}
+			Log.i(TAG, "Found instance of term in " + docs.size() + " documents");
+			if(this.interrupt){
+				this.interrupt = true;
+				return null;
+			}
+			return docs;
+		}
+		else {
+			Log.e(TAG, "Query Type: " + type + " not recognised");
+			return new ArrayList<String>();
+		}
+	}
 
-    public PageResult[] find(int type, String field, String value,
-                             int numResults, String constrainField, String constrainValue, int maxResultsPerPage) {
+	public PageResult[] findIn(String term, String field, List<String> constrainValues, String constrainField, int maxResults, int type){
+		Query qry = null;
+		if(this.interrupt){
+			this.interrupt = true;
+			return null;
+		}
+		if (type == FileSearcher.QUERY_BOOLEAN) {
+			String[] terms = term.split(" ");
+			qry = new BooleanQuery();
+			((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + term +"*")),
+					BooleanClause.Occur.MUST);
+		} else if (type == FileSearcher.QUERY_STANDARD) {
+			try {
+				qry = new QueryParser(Version.LUCENE_47, field,
+						new SimpleAnalyzer(Version.LUCENE_47)).parse(term);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			}
+			// qry.add(new Query(field, value));
+		}
+		if(this.interrupt){
+			this.interrupt = true;
+			return null;
+		}
+		if (qry != null) {
+			BooleanQuery cqry = new BooleanQuery();
+			for (String s : constrainValues) {
+				cqry.add(new TermQuery(new Term(constrainField, s)),
+						BooleanClause.Occur.MUST);
+			}
+			Filter filter = new QueryWrapperFilter(cqry);
+			ScoreDoc[] hits = null;
+			try {
+				hits = indexSearcher.search(qry, filter, -1).scoreDocs;
+			} catch (IOException e) {
+				Log.e(TAG, "Error ", e);
+			}
+			if(this.interrupt){
+				this.interrupt = true;
+				return null;
+			}
+			ArrayList<Document> docs = new ArrayList<Document>();
+			for (int i = 0; i < hits.length && i < maxResults ; i++) {
+				try {
+					docs.add(indexSearcher.doc(hits[i].doc));
+				} catch (IOException e) {
+					Log.e(TAG, "Error ", e);
+				}
+			}
+			if(this.interrupt){
+				this.interrupt = true;
+				return null;
+			}
+			Log.i(TAG, "Found instance of term in " + docs.size() + " documents");
+			/**
+			 * TODO - Add Highlighter Code to retrieve the generated phrase here (In progress)
+			 **/
+			try {
+				int numResults = 0;
+				PageResult[] results = new PageResult[docs.size()];
+				for (int i = 0; i < docs.size() && numResults < maxResults; i++) {
+					if(this.interrupt){
+						this.interrupt = true;
+						return null;
+					}
+					Document d = docs.get(i);
+					int docPage = Integer.parseInt(d.get("page"));
+					String name = d.get("path");
+					if(type != FileSearcher.QUERY_BOOLEAN) {
+						String contents = d.get("text");
+						Highlighter highlighter = new Highlighter(new QueryScorer(qry));
 
+						String[] frag = null;
+						try {
+							frag = highlighter.getBestFragments(new SimpleAnalyzer(Version.LUCENE_47), "text", contents, maxResults - numResults);
+							numResults += frag.length;
+						} catch (IOException e) {
+							Log.e(TAG, "Error while reading index", e);
+						} catch (InvalidTokenOffsetsException e) {
+							Log.e(TAG, "Error while highlighting", e);
+						}
+						Log.i(TAG, "Frags: " + frag.length + " " + frag + " " + frag[0]);
+						ArrayList<String> tmpList = new ArrayList<String>(Arrays
+								.asList(frag != null ? frag : new String[0]));
+						Log.i(TAG, "list " + tmpList.getClass().getName());
+						results[i] = new PageResult(tmpList, docPage, name);
+						Log.i(TAG, "" + results[i]);
+					}
+					else {
+						ArrayList<String> tmp = new ArrayList<String>();
+						tmp.add(term);
+						results[i] = new PageResult(tmp, docPage, name);
+					}
+
+				}
+				if(this.interrupt){
+					this.interrupt = true;
+					return null;
+				}
+				Log.i(TAG, "" +results.length);
+				return results;
+			}catch(Exception e){
+				Log.e("TAG", "Error while Highlighting", e);
+				return null;
+			}
+		} else {
+			Log.e(TAG, "Query Type: " + type + " not recognised");
+			return new PageResult[0];
+		}
+	}
+
+    // TODO - Boolean Search returns a huge number of results for simple queries, maxResults must be implemented
+    public PageResult[] find(String term, String field, String constrainValue, String constrainField, int maxResults, int type, int page) {
+	    if(this.interrupt) {
+		    this.interrupt = true;
+		    return null;
+	    }
         Query qry = null;
         if (type == FileSearcher.QUERY_BOOLEAN) {
-	        String[] terms = value.split(" ");
+	        String[] terms = term.split(" ");
             qry = new BooleanQuery();
-            ((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + value +"*")),
+            ((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + term +"*")),
                     BooleanClause.Occur.MUST);
         } else if (type == FileSearcher.QUERY_STANDARD) {
             try {
                 qry = new QueryParser(Version.LUCENE_47, field,
-                        new SimpleAnalyzer(Version.LUCENE_47)).parse(value);
+                        new SimpleAnalyzer(Version.LUCENE_47)).parse(term);
             } catch (ParseException e) {
                 e.printStackTrace();
             }
             // qry.add(new Query(field, value));
         }
+		    if(this.interrupt){
+			    this.interrupt = true;
+			    return null;
+		    }
         if (qry != null) {
             BooleanQuery cqry = new BooleanQuery();
             cqry.add(new TermQuery(new Term(constrainField, constrainValue)),
@@ -176,56 +353,76 @@ public class FileSearcher {
             Filter filter = new QueryWrapperFilter(cqry);
             ScoreDoc[] hits = null;
             try {
-                hits = indexSearcher.search(qry, filter, numResults).scoreDocs;
+                hits = indexSearcher.search(qry, filter, -1).scoreDocs;
             } catch (IOException e) {
                 Log.e(TAG, "Error ", e);
             }
-            Document[] docs = new Document[hits != null ? hits.length : 0];
-            for (int i = 0; i < docs.length; i++) {
+	        if(this.interrupt){
+		        this.interrupt = true;
+		        return null;
+	        }
+            ArrayList<Document> docs = new ArrayList<Document>();
+            for (int i = 0; i < hits.length && i < maxResults ; i++) {
                 try {
-                    docs[i] = indexSearcher.doc(hits[i].doc);
+	                Document tmp = indexSearcher.doc(hits[i].doc);
+	                int docPage = Integer.parseInt(tmp.get("page"));
+	                if(docPage >= page) {
+		                docs.add(indexSearcher.doc(hits[i].doc));
+	                }
                 } catch (IOException e) {
                     Log.e(TAG, "Error ", e);
                 }
             }
-	        Log.i(TAG, "Found instance of term in " + docs.length + " documents");
+	        if(this.interrupt){
+		        this.interrupt = true;
+		        return null;
+	        }
+	        Log.i(TAG, "Found instance of term in " + docs.size() + " documents");
             /**
              * TODO - Add Highlighter Code to retrieve the generated phrase here (In progress)
              **/
             try {
-	            PageResult[] results = new PageResult[docs.length];
-	            for (int i = 0; i < docs.length; i++) {
-		            Document d = docs[i];
-		            int page = Integer.parseInt(d.get("page"));
+	            int numResults = 0;
+	            PageResult[] results = new PageResult[docs.size()];
+	            for (int i = 0; i < docs.size() && numResults < maxResults; i++) {
+		            if(this.interrupt){
+			            this.interrupt = true;
+			            return null;
+		            }
+		            Document d = docs.get(i);
+		            int docPage = Integer.parseInt(d.get("page"));
 		            if(type != FileSearcher.QUERY_BOOLEAN) {
 			            String contents = d.get("text");
 			            Highlighter highlighter = new Highlighter(new QueryScorer(qry));
 
 			            String[] frag = null;
 			            try {
-				            // TODO - the following line causes a nullpointerexception in Highlighter.getBestFragments -> Analyzer.tokenstream -> ReusableStringReader.setValue
-				            // Was accessing wrong field, re-test and verify
-				            frag = highlighter.getBestFragments(new SimpleAnalyzer(Version.LUCENE_47), "text", contents, maxResultsPerPage);
+				            frag = highlighter.getBestFragments(new SimpleAnalyzer(Version.LUCENE_47), "text", contents, maxResults - numResults);
+				            numResults += frag.length;
 			            } catch (IOException e) {
 				            Log.e(TAG, "Error while reading index", e);
 			            } catch (InvalidTokenOffsetsException e) {
 				            Log.e(TAG, "Error while highlighting", e);
 			            }
 			            Log.i(TAG, "Frags: " + frag.length + " " + frag + " " + frag[0]);
-			            List<String> tmpList = new ArrayList<String>(Arrays
+			            ArrayList<String> tmpList = new ArrayList<String>(Arrays
 					            .asList(frag != null ? frag : new String[0]));
 			            Log.i(TAG, "list " + tmpList.getClass().getName());
-			            results[i] = new PageResult(tmpList, page);
+			            results[i] = new PageResult(tmpList, docPage, constrainValue);
 			            Log.i(TAG, "" + results[i]);
 		            }
 					else {
 			            ArrayList<String> tmp = new ArrayList<String>();
-			            tmp.add(value);
-			            results[i] = new PageResult(tmp, page);
+			            tmp.add(term);
+			            results[i] = new PageResult(tmp, docPage, constrainValue);
 		            }
 
 	            }
 	            Log.i(TAG, "" +results.length);
+	            if(this.interrupt){
+		            this.interrupt = true;
+		            return null;
+	            }
 	            return results;
             }catch(Exception e){
 		        Log.e("TAG", "Error while Highlighting", e);
@@ -236,4 +433,10 @@ public class FileSearcher {
             return new PageResult[0];
         }
     }
+
+	public boolean interrupt(){
+		boolean tmp = this.interrupt;
+		this.interrupt = true;
+		return tmp;
+	}
 }
