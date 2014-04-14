@@ -34,7 +34,7 @@ public class IndexInfo {
 		@param a listener that will be notified whenever the indexer starts indexing a
 			new file
 	 */
-	public void setFileChangeListener(FileChangeListener listener) {
+	public void setFileChangeListener(com.bmw.android.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.FileChangeListener listener) {
 
 	}
 
