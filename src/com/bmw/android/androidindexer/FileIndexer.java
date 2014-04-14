@@ -23,7 +23,7 @@ package com.bmw.android.androidindexer;
  * FileIndexer.java
  * 
  * Contains functions for building the lucene index.
- *  TODO - Evaluate the usefullness of ForceMerging as it increases total indexing time by about 17%
+ *  TODO - Evaluate the usefulness of ForceMerging as it increases total indexing time by about 17%
  */
 
 import android.os.Environment;
@@ -88,6 +88,8 @@ public class FileIndexer {
 				doc.add(new TextField("text", "" + contents, Field.Store.YES));
 				doc.add(new IntField("page", page, Field.Store.YES));
 				// }
+                // TODO - Check what OpenMode.CREATE_OR_APPEND does; I think updateDocument should
+                // always be used with CREATE_OR_APPEND, the if part may need to be removed
 				if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
 					writer.addDocument(doc);
 				} else {
@@ -134,8 +136,18 @@ public class FileIndexer {
 	// buildIndex is called from SearchService android.os.DeadObjectException is
 	// called on the SearchService from building larger indexes
 
-	public boolean checkForIndex(String field, String value) throws Exception {
-		return this.searcher.checkForIndex(field, value);
+
+	public int checkForIndex(String field, String value, long modified) throws Exception {
+        Document doc = this.searcher.getDocument(field, value);
+        if(doc != null) {
+            if( Long.parseLong(doc.get("modified")) < modified){
+                return 1;
+            } else {
+                return 0;
+            }
+        } else {
+            return -1;
+        }
 	}
 
 	public int buildIndex(String filename){
@@ -149,15 +161,8 @@ public class FileIndexer {
 			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
 				writer.addDocument(doc);
 			} else {
-				// Todo - Use updateDocument to delete
-				// the page that exists.
-				// must create a field that combines
-				// path and page number as if path is
-				// used, it will delete all pages of the
-				// document in the index
 				writer.updateDocument(new Term("id", file.getPath() + ":meta"),
 						doc);
-				writer.commit();
 			}
 			Log.i(TAG, "Done creating metadata");
 			// Must only call ForceMerge and Commit once per document as they are very resource heavy operations
@@ -169,19 +174,18 @@ public class FileIndexer {
 		return 0;
 	}
 
-	public int buildIndex(List<String> contents, String filename) {
+	public int buildIndex(List<String> contents, File file) {
 		try {
 			for (int i = 0; i < contents.size(); i++) {
-				if (!this.searcher.checkForIndex("id", filename + ":" + i)) {
-					FileIndexer.Build(writer, new File(filename), i, contents
+				if (this.checkForIndex("id", file.getAbsolutePath() + ":" + i, file.lastModified()) != 0) {
+					FileIndexer.Build(writer, file, i, contents
 							.get(i));
-
 				} else {
-					Log.i(TAG, "Skipping " + filename + ":" + i
+					Log.i(TAG, "Skipping " + file.getAbsolutePath() + ":" + i
 							+ " Already in index");
 				}
 			}
-			buildIndex(filename);
+			buildIndex(file.getPath());
 		} catch (Exception e) {
 			Log.e(TAG, "Error", e);
 			return -1;

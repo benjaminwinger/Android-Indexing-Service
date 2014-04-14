@@ -134,14 +134,14 @@ public class IndexService extends Service {
 							e1.printStackTrace();
 						}
 						Indexable tmp = pIndexes.poll();
-						Log.i(TAG, "Indexing: " + tmp.currentPath);
+						Log.i(TAG, "Indexing: " + tmp.file.getAbsolutePath());
 						if (tmp != null) {
 							if (tmp.tmpData == null || tmp.tmpData.size() == 0) {
-								indexer.buildIndex(tmp.currentPath);
+								indexer.buildIndex(tmp.file.getAbsolutePath());
 							} else {
 								try {
 									indexer.buildIndex(tmp.tmpData,
-											tmp.currentPath);
+											tmp.file);
 								} catch (Exception e) {
 									Log.e(TAG, "Error ", e);
 								}
@@ -284,14 +284,25 @@ public class IndexService extends Service {
 
 	public void createIndex(File content, String serviceName){
 		try {
-			if (indexer.checkForIndex("id",
-					content.getAbsolutePath() + ":meta")) {
-				Log.i(TAG, "Found index; skipping.");
-			} else {
-				Log.i(TAG, "Index not found, building index");
+            int state =indexer.checkForIndex("id",
+                    content.getAbsolutePath() + ":meta", content.lastModified());
+			if (state == 0) {
+				Log.i(TAG, "Found index for " + content.getName() + "; skipping.");
+			} else if(state == 1) {
+                Log.i(TAG, "Index for " + content.getName() + " out of date, building index");
+                try {
+                    new RemoteBuilder(
+                            content,
+                            serviceName);
+                } catch (Exception e) {
+                    Log.e(TAG, "" + e.getMessage());
+                }
+            }
+            else if(state == -1){
+				Log.i(TAG, "Index for " + content.getName() + " not found, building index");
 				try {
 					new RemoteBuilder(
-							content.getAbsolutePath(),
+							content,
 							serviceName);
 				} catch (Exception e) {
 					Log.e(TAG, "" + e.getMessage());
@@ -330,16 +341,16 @@ public class IndexService extends Service {
 
 	private class Indexable {
 		private ArrayList<String> tmpData;
-		private String currentPath;
+		private File file;
 		private IBinder mService;
 		private String serviceName = null;
 		private RemoteBuilder builder;
 
-		public Indexable(ArrayList<String> tmpData, String currentPath,
+		public Indexable(ArrayList<String> tmpData, File file,
 		                 IBinder mService, String serviceName, RemoteBuilder builder) {
 			super();
 			this.tmpData = tmpData;
-			this.currentPath = currentPath;
+			this.file = file;
 			this.mService = mService;
 			this.serviceName = serviceName;
 			this.builder = builder;
@@ -349,17 +360,17 @@ public class IndexService extends Service {
 
 	private class RemoteBuilder {
 		private ArrayList<String> tmpData;
-		private String currentPath;
+		private File file;
 		private IBinder mService;
 		private String serviceName = null;
 
-		public RemoteBuilder(String path, String serviceName) {
-			this.currentPath = path;
+		public RemoteBuilder(File file, String serviceName) {
+			this.file = file;
 			this.serviceName = serviceName;
 			if(serviceName != null) {
 				this.doBindService(getApplicationContext());
 			} else{
-				pIndexes.add(new Indexable(null, currentPath, null,
+				pIndexes.add(new Indexable(null, file, null,
 						null, RemoteBuilder.this));
 			}
 		}
@@ -409,7 +420,7 @@ public class IndexService extends Service {
 				try {
 					MClientService tmp = MClientService.Stub
 							.asInterface(mService);
-					tmp.loadFile(currentPath);
+					tmp.loadFile(file.getAbsolutePath());
 					tmpData = new ArrayList<String>();
 					int pages = tmp.getPageCount();
 					for (int i = 0; i < pages; i++) {
@@ -419,7 +430,7 @@ public class IndexService extends Service {
 					e.printStackTrace();
 				}
 				// build();
-				pIndexes.add(new Indexable(tmpData, currentPath, mService,
+				pIndexes.add(new Indexable(tmpData, file, mService,
 						serviceName, RemoteBuilder.this));
 				doUnbindService(getApplicationContext());
 			}

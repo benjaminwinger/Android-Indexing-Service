@@ -93,13 +93,7 @@ public class FileSearcher {
         this.indexSearcher = indexSearcher;
     }
 
-    public boolean checkForIndex(String field, String value) throws Exception {
-        /*
-         * TODO Add capacity to check if the file needs to be updated by
-		 * comparing the index metadata's modified date with the file's modified
-		 * date
-		 */
-
+    public boolean checkForIndex(String field, String value) throws IOException {
         Log.i(TAG, "Checking for existance of " + value);
         BooleanQuery qry = new BooleanQuery();
         qry.add(new TermQuery(new Term(field, value)), BooleanClause.Occur.MUST);
@@ -108,20 +102,30 @@ public class FileSearcher {
             hits = indexSearcher.search(qry, 1).scoreDocs;
             return hits.length > 0;
         } else {
-            Log.i(TAG, "Unable to check for index; building anyways");
+            Log.i(TAG, "Unable to check for index");
             IndexReader indexReader;
             IndexSearcher indexSearcher = null;
-            try {
-                File indexDirFile = new File(FileIndexer.getRootStorageDir());
-                Directory tmpDir = FSDirectory.open(indexDirFile);
-                indexReader = DirectoryReader.open(tmpDir);
-                indexSearcher = new IndexSearcher(indexReader);
-            } catch (IOException ioe) {
-                Log.e(TAG, "Error", ioe);
-            }
+            File indexDirFile = new File(FileIndexer.getRootStorageDir());
+            Directory tmpDir = FSDirectory.open(indexDirFile);
+            indexReader = DirectoryReader.open(tmpDir);
+            indexSearcher = new IndexSearcher(indexReader);
             this.indexSearcher = indexSearcher;
             return false;
         }
+    }
+
+    public Document getDocument(String field, String value) throws IOException{
+        Log.i(TAG, "Checking for existance of " + value);
+        BooleanQuery qry = new BooleanQuery();
+        qry.add(new TermQuery(new Term(field, value)), BooleanClause.Occur.MUST);
+        if (this.indexSearcher != null) {
+            ScoreDoc[] hits;
+            hits = indexSearcher.search(qry, 1).scoreDocs;
+            if(hits!= null && hits.length > 0) {
+                return indexSearcher.doc(hits[0].doc);
+            }
+        }
+        return null;
     }
 
     public Document getMetaFile(String value) {
