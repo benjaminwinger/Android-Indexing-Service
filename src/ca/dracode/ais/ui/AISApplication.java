@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package ca.dracode.ais.ais;
+package ca.dracode.ais.ui;
 
 import android.app.Application;
 import android.util.Log;
