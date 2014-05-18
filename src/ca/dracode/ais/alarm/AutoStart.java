@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.alarm;
+package ca.dracode.ais.alarm;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.androidindexer;
+package ca.dracode.ais.indexer;
 
 /*
  * FileIndexer.java
@@ -50,7 +50,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class FileIndexer {
-	private static String TAG = "com.bmw.android.androidindexer.FileIndexer";
+	private static String TAG = "ca.dracode.ais.androidindexer.FileIndexer";
 	private IndexWriter writer;
 	private FileSearcher searcher;
 
@@ -125,7 +125,7 @@ public class FileIndexer {
 
 		if (mExternalStorageAvailable && mExternalStorageWriteable) {
 			return Environment.getExternalStorageDirectory()
-					+ "/Android/data/com.bmw.android.ais";
+					+ "/Android/data/ca.dracode.ais";
 		} else {
 			return null;
 		}

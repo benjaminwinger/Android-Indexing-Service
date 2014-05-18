@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.IndexInfo;
+package ca.dracode.ais.indexinfo;
 
 public class IndexInfo {
 
@@ -34,7 +34,7 @@ public class IndexInfo {
 		@param a listener that will be notified whenever the indexer starts indexing a
 			new file
 	 */
-	public void setFileChangeListener(com.bmw.android.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.IndexInfo.FileChangeListener listener) {
+	public void setFileChangeListener(FileChangeListener listener) {
 
 	}
 

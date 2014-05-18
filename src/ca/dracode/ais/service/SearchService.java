@@ -17,16 +17,12 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.indexservice;
+package ca.dracode.ais.service;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
-
-import com.bmw.android.androidindexer.FileIndexer;
-import com.bmw.android.androidindexer.FileSearcher;
-import com.bmw.android.indexdata.PageResult;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
@@ -35,18 +31,21 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 
+import ca.dracode.ais.indexdata.PageResult;
+import ca.dracode.ais.indexer.FileIndexer;
+import ca.dracode.ais.indexer.FileSearcher;
+
 /*
  * 	SearchService.java
  * 
  * 	Service accessed by the client library with functions to search through the index
- * 
- * 	v0.3
+ *
  * 	Make the indexer search from disk for multi-file searches and search from memory
  * 	for single file searches (load file into memory in load function).
  */
 
 public class SearchService extends Service {
-    private static final String TAG = "com.bmw.android.indexservice.SearchService";
+    private static final String TAG = "ca.dracode.ais.service.SearchService";
     private final BSearchService1_0.Stub mBinder = new BSearchService1_0.Stub() {
 	    public PageResult[] find(String doc, int type, String text, int numHits, int page){
 		    return sm.find(text, doc, numHits, type, page);
@@ -166,7 +165,7 @@ public class SearchService extends Service {
         } else {
             tmpData.text.addAll(text);
             try {
-                indexer.buildIndex(tmpData.text, filePath);
+                indexer.buildIndex(tmpData.text, new File(filePath));
             } catch (Exception ex) {
                 Log.v("PDFIndex", "" + ex.getMessage());
                 ex.printStackTrace();

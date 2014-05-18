@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.IndexInfo;
+package ca.dracode.ais.indexinfo;
 
 import java.io.File;
 

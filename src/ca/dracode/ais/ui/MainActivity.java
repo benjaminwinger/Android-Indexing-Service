@@ -17,11 +17,13 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.ais;
+package ca.dracode.ais.ui;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.Menu;
+
+import ca.dracode.ais.R;
 
 public class MainActivity extends Activity {
 

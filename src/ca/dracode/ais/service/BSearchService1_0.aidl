@@ -1,8 +1,8 @@
 
 
-package com.bmw.android.indexservice;
+package ca.dracode.ais.service;
 
-import com.bmw.android.indexdata.PageResult;
+import ca.dracode.ais.indexdata.PageResult;
 
 /*
  * 	BSearchService1_0.aidl

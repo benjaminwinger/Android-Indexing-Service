@@ -1,4 +1,4 @@
-package com.bmw.android.indexdata;
+package ca.dracode.ais.indexdata;
 
 /*
  *	PageResult.aidl

@@ -21,9 +21,9 @@
     xmlns="http://maven.apache.org/POM/4.0.0"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.bmw.android</groupId>
-    <artifactId>AIS</artifactId>
-    <version>0.3.0</version>
+    <groupId>ca.dracode</groupId>
+    <artifactId>ais</artifactId>
+    <version>0.4.0-TESTING</version>
     <packaging>apk</packaging>
     <name>AndroidIndexingService</name>
     <dependencies>
@@ -69,7 +69,7 @@
                 <configuration>
                     <sdk>
                         <!-- platform as api level (api level 16 = platform 4.1) -->
-                        <platform>17</platform>
+                        <platform>19</platform>
                     </sdk>
                     <zipalign>
                         <skip>false</skip>

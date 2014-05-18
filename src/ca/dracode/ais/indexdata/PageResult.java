@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.indexdata;
+package ca.dracode.ais.indexdata;
 
 import android.os.Parcel;
 import android.os.Parcelable;

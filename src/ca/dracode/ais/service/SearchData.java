@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.indexservice;
+package ca.dracode.ais.service;
 
 import java.util.ArrayList;
 

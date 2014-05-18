@@ -17,7 +17,7 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.ais;
+package ca.dracode.ais.ais;
 
 import android.app.Application;
 import android.util.Log;
@@ -35,7 +35,7 @@ import org.apache.lucene.search.IndexSearcher;
 
 public class AISApplication extends Application {
 
-    private final static String TAG = "com.bmw.android.ais";
+    private final static String TAG = "ca.dracode.ais.ais";
 	protected IndexSearcher indexSearcher; // TODO - Use this as a global searcher for whenever the aplication is running (is this necessary?)
 
     public void onCreate() {

@@ -17,11 +17,9 @@
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
-package com.bmw.android.androidindexer;
+package ca.dracode.ais.indexer;
 
 import android.util.Log;
-
-import com.bmw.android.indexdata.PageResult;
 
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
@@ -52,6 +50,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import ca.dracode.ais.indexdata.PageResult;
+import ca.dracode.ais.indexer.FileIndexer;
+
 /*
  * FileSearcher.java
  * 
@@ -74,7 +75,7 @@ public class FileSearcher {
     public static final int QUERY_STANDARD = 1;
 
 
-    private final String TAG = "com.bmw.android.androidindexer.FileSearcher";
+    private final String TAG = "ca.dracode.ais.androidindexer.FileSearcher";
     private IndexSearcher indexSearcher;
 	private boolean interrupt = false;
 
