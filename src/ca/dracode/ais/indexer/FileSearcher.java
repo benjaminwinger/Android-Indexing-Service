@@ -51,7 +51,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import ca.dracode.ais.indexdata.PageResult;
-import ca.dracode.ais.indexer.FileIndexer;
 
 /*
  * FileSearcher.java
@@ -95,7 +94,7 @@ public class FileSearcher {
     }
 
     public boolean checkForIndex(String field, String value) throws IOException {
-        Log.i(TAG, "Checking for existance of " + value);
+        //Log.i(TAG, "Checking for existance of " + value);
         BooleanQuery qry = new BooleanQuery();
         qry.add(new TermQuery(new Term(field, value)), BooleanClause.Occur.MUST);
         if (this.indexSearcher != null) {
@@ -103,7 +102,7 @@ public class FileSearcher {
             hits = indexSearcher.search(qry, 1).scoreDocs;
             return hits.length > 0;
         } else {
-            Log.i(TAG, "Unable to check for index");
+            Log.i(TAG, "Unable to check for index " + field + ":" + value);
             IndexReader indexReader;
             IndexSearcher indexSearcher = null;
             File indexDirFile = new File(FileIndexer.getRootStorageDir());
@@ -116,7 +115,7 @@ public class FileSearcher {
     }
 
     public Document getDocument(String field, String value) throws IOException{
-        Log.i(TAG, "Checking for existance of " + value);
+        //Log.i(TAG, "Checking for existance of " + value);
         BooleanQuery qry = new BooleanQuery();
         qry.add(new TermQuery(new Term(field, value)), BooleanClause.Occur.MUST);
         if (this.indexSearcher != null) {

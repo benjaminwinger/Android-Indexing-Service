@@ -1,6 +1,6 @@
 
 
-package ca.dracode.ais.indexclient;
+package com.bmw.android.indexclient;
 
 /*
  *	MClientService.aidl

@@ -33,7 +33,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
-import org.apache.lucene.search.IndexSearcher;
+import com.bmw.android.indexclient.MClientService;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -42,14 +42,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 
 import ca.dracode.ais.R;
 import ca.dracode.ais.indexer.FileIndexer;
-import ca.dracode.ais.indexclient.MClientService;
 
 /*
  * IndexService.java
@@ -65,25 +63,17 @@ import ca.dracode.ais.indexclient.MClientService;
  */
 
 public class IndexService extends Service {
-	private static final int SERVER_PORT = 6002;
 	private static String TAG = "ca.dracode.ais.service.IndexService";
 	private final IBinder mBinder = new LocalBinder();
-	protected long startWait;
 	protected boolean interrupt;
-	protected long indexTime;
-	private ServerSocket serverSocket;
-	private Thread serverThread = null;
 	private NotificationManager nm;
 	private int mIsBound = 0;
 	private boolean doneCrawling;
 	private ArrayList<ParserService> services;
 	private Queue<Indexable> pIndexes;
-	private IndexSearcher indexSearcher;
 	private FileIndexer indexer;
-
-	public static String getIconLocation(String filename) {
-		return FileIndexer.getRootStorageDir() + "/icons/" + filename + ".png";
-	}
+    private final int maxTasks = 30;
+    private int tasks = 0;
 
 	@Override
 	public void onCreate() {
@@ -92,7 +82,6 @@ public class IndexService extends Service {
 				.getSystemService(NOTIFICATION_SERVICE);
 		IndexService.this.notifyPersistent(
 				getText(R.string.notification_indexer_started), 1);
-		try {
 			boolean mExternalStorageAvailable;
 			boolean mExternalStorageWriteable;
 			String state = Environment.getExternalStorageState();
@@ -125,21 +114,23 @@ public class IndexService extends Service {
 			this.doneCrawling = false;
 			new Thread(new Runnable() {
 				public void run() {
+                    //Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
 					while (true) {
 						try {
-							Thread.sleep(10);
+							Thread.sleep(0,10);
 						} catch (InterruptedException e1) {
 							e1.printStackTrace();
 						}
 						Indexable tmp = pIndexes.poll();
-						Log.i(TAG, "Indexing: " + tmp.file.getAbsolutePath());
 						if (tmp != null) {
+                            Log.i(TAG, "Indexing: " + tmp.file.getAbsolutePath());
 							if (tmp.tmpData == null || tmp.tmpData.size() == 0) {
 								indexer.buildIndex(tmp.file.getAbsolutePath());
 							} else {
 								try {
 									indexer.buildIndex(tmp.tmpData,
 											tmp.file);
+                                    tasks--;
 								} catch (Exception e) {
 									Log.e(TAG, "Error ", e);
 								}
@@ -155,11 +146,17 @@ public class IndexService extends Service {
 					}
 				}
 			}).start();
-			crawl(new File("/"));
-			this.doneCrawling = true;
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
+            new Thread(new Runnable(){
+                public void run(){
+                    //Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                    try {
+                        crawl(Environment.getExternalStorageDirectory());
+                        doneCrawling = true;
+                    } catch(IOException e){
+                        Log.e(TAG, "Error", e);
+                    }
+                }
+            }).start();
 	}
 
 	public void loadServices(File directory) {
@@ -209,8 +206,16 @@ public class IndexService extends Service {
 	public void crawl(File directory) throws IOException {
 		// Log.i(TAG, "Indexing directory " + directory.getAbsolutePath());
 		File[] contents = directory.listFiles();
+        Log.i(TAG, "Indexer Entered Directory " + directory.getAbsolutePath());
 		if (contents != null) {
 			for (File content : contents) {
+                while(tasks > maxTasks){
+                    try {
+                        Thread.sleep(10);
+                    } catch(InterruptedException e){
+                        Log.e(TAG, "Error", e);
+                    }
+                }
 				if (content.canRead()) {
 					if (content.isFile()) {
 						String serviceName = null;
@@ -292,6 +297,7 @@ public class IndexService extends Service {
                     new RemoteBuilder(
                             content,
                             serviceName);
+                    tasks++;
                 } catch (Exception e) {
                     Log.e(TAG, "" + e.getMessage());
                 }
@@ -302,6 +308,7 @@ public class IndexService extends Service {
 					new RemoteBuilder(
 							content,
 							serviceName);
+                    tasks++;
 				} catch (Exception e) {
 					Log.e(TAG, "" + e.getMessage());
 				}

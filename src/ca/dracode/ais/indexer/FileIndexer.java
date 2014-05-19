@@ -75,8 +75,8 @@ public class FileIndexer {
 	                         String contents) {
 		if (file.canRead()) {
 			try {
-				Log.i(TAG, "Started Indexing file: " + file.getName() + " "
-						+ page);
+				//Log.i(TAG, "Started Indexing file: " + file.getName() + " "
+				//		+ page);
 				Document doc = new Document();
 				doc.add(new StringField("id", file.getPath() + ":" + page,
 						Field.Store.NO));
@@ -97,7 +97,7 @@ public class FileIndexer {
 					writer.updateDocument(new Term("id", file.getPath() + ":"
 							+ page), doc);
 				}
-				Log.i(TAG, "Done Indexing file: " + file.getName() + " " + page);
+				//Log.i(TAG, "Done Indexing file: " + file.getName() + " " + page);
 			} catch (Exception e) {
 				Log.e(TAG, "Error ", e);
 			}
@@ -152,7 +152,7 @@ public class FileIndexer {
 
 	public int buildIndex(String filename){
 		try {
-			Log.i(TAG, "Writing Metadata");
+			//Log.i(TAG, "Writing Metadata");
 			Document doc = new Document();
 			File file = new File(filename);
 			doc.add(new StringField("id", file.getPath() + ":meta", Field.Store.NO));
@@ -164,7 +164,7 @@ public class FileIndexer {
 				writer.updateDocument(new Term("id", file.getPath() + ":meta"),
 						doc);
 			}
-			Log.i(TAG, "Done creating metadata");
+			Log.i(TAG, "Done creating metadata for file " + filename);
 			// Must only call ForceMerge and Commit once per document as they are very resource heavy operations
 			writer.commit();
 		} catch (Exception e) {
@@ -181,8 +181,8 @@ public class FileIndexer {
 					FileIndexer.Build(writer, file, i, contents
 							.get(i));
 				} else {
-					Log.i(TAG, "Skipping " + file.getAbsolutePath() + ":" + i
-							+ " Already in index");
+					//Log.i(TAG, "Skipping " + file.getAbsolutePath() + ":" + i
+					//		+ " Already in index");
 				}
 			}
 			buildIndex(file.getPath());
