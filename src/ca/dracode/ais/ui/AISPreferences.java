@@ -19,40 +19,18 @@
 
 package ca.dracode.ais.ui;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.TextView;
+import android.preference.PreferenceActivity;
 
 import ca.dracode.ais.R;
 
-public class MainActivity extends Activity {
-
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		this.setContentView(R.layout.activity_main);
-        TextView t = (TextView)findViewById(R.id.textView1);
-        t.setText(this.getResources().getText(R.string.hello_world));
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
+public class AISPreferences extends PreferenceActivity {
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item){
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            Intent i = new Intent(this, AISPreferences.class);
-            startActivity(i);
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
+        addPreferencesFromResource(R.xml.prefs);
+
+    }
 }

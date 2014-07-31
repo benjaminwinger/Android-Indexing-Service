@@ -174,6 +174,31 @@ public class FileIndexer {
 		return 0;
 	}
 
+    public int buildIndex(String filename, int pages){
+        try {
+            //Log.i(TAG, "Writing Metadata");
+            Document doc = new Document();
+            File file = new File(filename);
+            doc.add(new StringField("id", file.getPath() + ":meta", Field.Store.NO));
+            doc.add(new LongField("modified", file.lastModified(), Field.Store.YES));
+            doc.add(new StringField("path", file.getAbsolutePath(), Field.Store.YES));
+            doc.add(new IntField("pages", pages, Field.Store.YES));
+            if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+                writer.addDocument(doc);
+            } else {
+                writer.updateDocument(new Term("id", file.getPath() + ":meta"),
+                        doc);
+            }
+            Log.i(TAG, "Done creating metadata for file " + filename);
+            // Must only call ForceMerge and Commit once per document as they are very resource heavy operations
+            writer.commit();
+        } catch (Exception e) {
+            Log.e(TAG, "Error", e);
+            return -1;
+        }
+        return 0;
+    }
+
 	public int buildIndex(List<String> contents, File file) {
 		try {
 			for (int i = 0; i < contents.size(); i++) {
@@ -185,7 +210,7 @@ public class FileIndexer {
 					//		+ " Already in index");
 				}
 			}
-			buildIndex(file.getPath());
+			buildIndex(file.getPath(), contents.size());
 		} catch (Exception e) {
 			Log.e(TAG, "Error", e);
 			return -1;

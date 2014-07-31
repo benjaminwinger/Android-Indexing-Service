@@ -32,9 +32,6 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
-
-import com.bmw.android.indexclient.MClientService;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -47,6 +44,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 import ca.dracode.ais.R;
+import ca.dracode.ais.indexclient.MClientService;
 import ca.dracode.ais.indexer.FileIndexer;
 
 /*
@@ -117,7 +115,7 @@ public class IndexService extends Service {
                     //Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
 					while (true) {
 						try {
-							Thread.sleep(0,10);
+							Thread.sleep(0, 10);
 						} catch (InterruptedException e1) {
 							e1.printStackTrace();
 						}

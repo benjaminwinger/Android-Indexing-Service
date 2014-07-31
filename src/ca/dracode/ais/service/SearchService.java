@@ -94,7 +94,7 @@ public class SearchService extends Service {
 	     *			-1 on error
 	     */
 	    public int buildIndex(String filePath, List<String> text, double page, int maxPage){
-		    return buildIndex(filePath, text, page, maxPage);
+		    return SearchService.this.buildIndex(filePath, text, page, maxPage);
 	    }
 
 	    /**
@@ -108,7 +108,7 @@ public class SearchService extends Service {
 	     *			-1 if there was an error
 	     */
 	    public int load(String filePath){
-		    return load(filePath);
+		    return SearchService.this.load(filePath);
 	    }
 
 	    /**
@@ -117,7 +117,7 @@ public class SearchService extends Service {
 	     * @return true if the file exists in the index; false otherwise
 	     */
 	    public boolean unload(String filePath){
-		    return unload(filePath);
+		    return SearchService.this.unload(filePath);
 	    }
 
 	    /**

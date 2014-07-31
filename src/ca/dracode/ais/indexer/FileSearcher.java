@@ -48,7 +48,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.TreeMap;
 
 import ca.dracode.ais.indexdata.PageResult;
 
@@ -326,7 +328,8 @@ public class FileSearcher {
 	}
 
     // TODO - Boolean Search returns a huge number of results for simple queries, maxResults must be implemented
-    public PageResult[] find(String term, String field, String constrainValue, String constrainField, int maxResults, int type, int page) {
+    public PageResult[] find(String term, String field, String constrainValue,
+                             String constrainField, int maxResults, int type, final int page) {
 	    if(this.interrupt) {
 		    this.interrupt = true;
 		    return null;
@@ -357,7 +360,7 @@ public class FileSearcher {
             Filter filter = new QueryWrapperFilter(cqry);
             ScoreDoc[] hits = null;
             try {
-                hits = indexSearcher.search(qry, filter, -1).scoreDocs;
+                hits = indexSearcher.search(qry, filter, 0).scoreDocs;
             } catch (IOException e) {
                 Log.e(TAG, "Error ", e);
             }
@@ -365,13 +368,38 @@ public class FileSearcher {
 		        this.interrupt = true;
 		        return null;
 	        }
-            ArrayList<Document> docs = new ArrayList<Document>();
-            for (int i = 0; i < hits.length && i < maxResults ; i++) {
+            final TreeMap<Integer, ScoreDoc> pages = new TreeMap<Integer, ScoreDoc>(new Comparator<Integer>() {
+                @Override
+                public int compare(Integer integer, Integer integer2) {
+                    int int1 = integer;
+                    if(int1 < page){
+                        int1 += Integer.MAX_VALUE - page;
+                    }
+                    int int2 = integer2;
+                    if(int2 < page){
+                        int2 += Integer.MAX_VALUE - page;
+                    }
+                    return int1 - int2;
+                }
+            });
+            for(int i = 0; i < hits.length; i++){
                 try {
-	                Document tmp = indexSearcher.doc(hits[i].doc);
+                    int tmpPage = Integer.parseInt((indexSearcher.doc(hits[i].doc)).get("page"));
+                    pages.put(page, hits[i]);
+                } catch(IOException e){
+                    Log.e(TAG, "Error", e);
+                }
+            }
+
+            ScoreDoc[] sortedHits = pages.values().toArray(new ScoreDoc[0]);
+
+            ArrayList<Document> docs = new ArrayList<Document>();
+            for (int i = 0; i < sortedHits.length  ; i++) {
+                try {
+	                Document tmp = indexSearcher.doc(sortedHits[i].doc);
 	                int docPage = Integer.parseInt(tmp.get("page"));
 	                if(docPage >= page) {
-		                docs.add(indexSearcher.doc(hits[i].doc));
+		                docs.add(tmp);
 	                }
                 } catch (IOException e) {
                     Log.e(TAG, "Error ", e);
@@ -381,14 +409,14 @@ public class FileSearcher {
 		        this.interrupt = true;
 		        return null;
 	        }
-	        Log.i(TAG, "Found instance of term in " + docs.size() + " documents");
+	        Log.i(TAG, "Found instance of term in " + hits.length + " documents");
             /**
              * TODO - Add Highlighter Code to retrieve the generated phrase here (In progress)
              **/
             try {
 	            int numResults = 0;
-	            PageResult[] results = new PageResult[docs.size()];
-	            for (int i = 0; i < docs.size() && numResults < maxResults; i++) {
+	            ArrayList<PageResult> results = new ArrayList<PageResult>();
+	            for (int i = 0; i < docs.size(); i++) {
 		            if(this.interrupt){
 			            this.interrupt = true;
 			            return null;
@@ -412,22 +440,27 @@ public class FileSearcher {
 			            ArrayList<String> tmpList = new ArrayList<String>(Arrays
 					            .asList(frag != null ? frag : new String[0]));
 			            Log.i(TAG, "list " + tmpList.getClass().getName());
-			            results[i] = new PageResult(tmpList, docPage, constrainValue);
-			            Log.i(TAG, "" + results[i]);
+			            results.add(new PageResult(tmpList, docPage, constrainValue));
+			            Log.i(TAG, "" + results.get(i));
 		            }
 					else {
-			            ArrayList<String> tmp = new ArrayList<String>();
+                        for(int j = 0; j < i; j++){
+                            if(results.get(j).page == docPage){
+                                results.get(j).text.add(term);
+                            }
+                        }
+                        ArrayList<String> tmp = new ArrayList<String>();
 			            tmp.add(term);
-			            results[i] = new PageResult(tmp, docPage, constrainValue);
+			            results.add(new PageResult(tmp, docPage, constrainValue));
 		            }
 
 	            }
-	            Log.i(TAG, "" +results.length);
+	            Log.i(TAG, "" +results.size());
 	            if(this.interrupt){
 		            this.interrupt = true;
 		            return null;
 	            }
-	            return results;
+	            return results.toArray(new PageResult[0]);
             }catch(Exception e){
 		        Log.e("TAG", "Error while Highlighting", e);
 	            return null;

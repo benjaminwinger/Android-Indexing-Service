@@ -1,4 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?><!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   ~ Copyright 2014 Benjamin Winger.
   ~
   ~ This file is part of Android Indexing Service.
@@ -17,15 +19,9 @@
   ~ along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
 
-<resources>
-
-    <string name="app_name">AIS</string>
-    <string name="action_settings">Settings</string>
-    <string name="hello_world">Hello other world!</string>
-    <string name="title_activity_aisapplication">AISApplication</string>
-    <string name="notification_indexer_started">Indexer started</string>
-    <string name="notification_indexer_finished">Indexer finished indexing</string>
-    <string name="notification_indexer_error">Indexing error</string>
-    <string name="notification_indexer_indexed_file">Indexed file: </string>
-
-</resources>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent">
+<CheckBoxPreference
+    android:title="Indexing Enabled"/>
+</PreferenceScreen>
