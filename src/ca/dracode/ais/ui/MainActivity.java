@@ -34,7 +34,6 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		this.setContentView(R.layout.activity_main);
         TextView t = (TextView)findViewById(R.id.textView1);
-        t.setText(this.getResources().getText(R.string.hello_world));
 	}
 
 	@Override

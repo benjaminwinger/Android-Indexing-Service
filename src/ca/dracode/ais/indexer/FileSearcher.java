@@ -23,6 +23,7 @@ import android.util.Log;
 
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -30,11 +31,14 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
 import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.search.highlight.Highlighter;
@@ -48,11 +52,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
-import java.util.TreeMap;
+import java.util.Set;
 
 import ca.dracode.ais.indexdata.PageResult;
+import sun.misc.Compare;
 
 /*
  * FileSearcher.java
@@ -186,7 +190,7 @@ public class FileSearcher {
 			Filter filter = new QueryWrapperFilter(cqry);
 			ScoreDoc[] hits = null;
 			try {
-				hits = indexSearcher.search(qry, filter, -1).scoreDocs;
+				hits = indexSearcher.search(qry, filter, Integer.MAX_VALUE).scoreDocs;
 			} catch (IOException e) {
 				Log.e(TAG, "Error ", e);
 			}
@@ -249,7 +253,7 @@ public class FileSearcher {
 			Filter filter = new QueryWrapperFilter(cqry);
 			ScoreDoc[] hits = null;
 			try {
-				hits = indexSearcher.search(qry, filter, -1).scoreDocs;
+				hits = indexSearcher.search(qry, filter, Integer.MAX_VALUE).scoreDocs;
 			} catch (IOException e) {
 				Log.e(TAG, "Error ", e);
 			}
@@ -331,7 +335,7 @@ public class FileSearcher {
     public PageResult[] find(String term, String field, String constrainValue,
                              String constrainField, int maxResults, int type, final int page) {
 	    if(this.interrupt) {
-		    this.interrupt = true;
+		    this.interrupt = false;
 		    return null;
 	    }
         Query qry = null;
@@ -350,7 +354,7 @@ public class FileSearcher {
             // qry.add(new Query(field, value));
         }
 		    if(this.interrupt){
-			    this.interrupt = true;
+			    this.interrupt = false;
 			    return null;
 		    }
         if (qry != null) {
@@ -360,7 +364,9 @@ public class FileSearcher {
             Filter filter = new QueryWrapperFilter(cqry);
             ScoreDoc[] hits = null;
             try {
-                hits = indexSearcher.search(qry, filter, 0).scoreDocs;
+                Log.i(TAG, "Searching...");
+                hits = indexSearcher.search(qry, filter, maxResults,
+                        new Sort(new SortField("page",SortField.Type.INT))).scoreDocs;
             } catch (IOException e) {
                 Log.e(TAG, "Error ", e);
             }
@@ -368,45 +374,20 @@ public class FileSearcher {
 		        this.interrupt = true;
 		        return null;
 	        }
-            final TreeMap<Integer, ScoreDoc> pages = new TreeMap<Integer, ScoreDoc>(new Comparator<Integer>() {
-                @Override
-                public int compare(Integer integer, Integer integer2) {
-                    int int1 = integer;
-                    if(int1 < page){
-                        int1 += Integer.MAX_VALUE - page;
-                    }
-                    int int2 = integer2;
-                    if(int2 < page){
-                        int2 += Integer.MAX_VALUE - page;
-                    }
-                    return int1 - int2;
-                }
-            });
-            for(int i = 0; i < hits.length; i++){
-                try {
-                    int tmpPage = Integer.parseInt((indexSearcher.doc(hits[i].doc)).get("page"));
-                    pages.put(page, hits[i]);
-                } catch(IOException e){
-                    Log.e(TAG, "Error", e);
-                }
-            }
 
-            ScoreDoc[] sortedHits = pages.values().toArray(new ScoreDoc[0]);
-
+            Log.i(TAG, "Sorted " + hits.length);
             ArrayList<Document> docs = new ArrayList<Document>();
-            for (int i = 0; i < sortedHits.length  ; i++) {
+            for (int i = 0; i < hits.length  ; i++) {
                 try {
-	                Document tmp = indexSearcher.doc(sortedHits[i].doc);
+	                Document tmp = indexSearcher.doc(hits[i].doc);
 	                int docPage = Integer.parseInt(tmp.get("page"));
-	                if(docPage >= page) {
-		                docs.add(tmp);
-	                }
-                } catch (IOException e) {
+	                docs.add(tmp);
+	            } catch (IOException e) {
                     Log.e(TAG, "Error ", e);
                 }
             }
 	        if(this.interrupt){
-		        this.interrupt = true;
+		        this.interrupt = false;
 		        return null;
 	        }
 	        Log.i(TAG, "Found instance of term in " + hits.length + " documents");
@@ -418,7 +399,7 @@ public class FileSearcher {
 	            ArrayList<PageResult> results = new ArrayList<PageResult>();
 	            for (int i = 0; i < docs.size(); i++) {
 		            if(this.interrupt){
-			            this.interrupt = true;
+			            this.interrupt = false;
 			            return null;
 		            }
 		            Document d = docs.get(i);
@@ -444,11 +425,6 @@ public class FileSearcher {
 			            Log.i(TAG, "" + results.get(i));
 		            }
 					else {
-                        for(int j = 0; j < i; j++){
-                            if(results.get(j).page == docPage){
-                                results.get(j).text.add(term);
-                            }
-                        }
                         ArrayList<String> tmp = new ArrayList<String>();
 			            tmp.add(term);
 			            results.add(new PageResult(tmp, docPage, constrainValue));
@@ -457,7 +433,7 @@ public class FileSearcher {
 	            }
 	            Log.i(TAG, "" +results.size());
 	            if(this.interrupt){
-		            this.interrupt = true;
+		            this.interrupt = false;
 		            return null;
 	            }
 	            return results.toArray(new PageResult[0]);
