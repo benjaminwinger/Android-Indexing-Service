@@ -24,12 +24,17 @@ interface BSearchService1_0 {
 	 *				for multiple files to be in the search service's memory at once.
 	 * 			type - allows the client to specify what type of results it wants to receive
 	 * 			text - the search term
-	 * 			numHits - the maximum number of results to return
+	 * 			numHits - the maximum number of results to return, a value of -1 means no limit
+	 *          resultSet - specifies the result set number. Set 0 returns results numbered 0 ..
+	 *              (numHits - 1). If this number is larger than 0 and the available number of  hits
+	 *              is greater than numHits, the function will return results numbered from
+	 *              (numHits * resultSet) .. (lesser of (available hits) and (numHits * resultSet +
+	 *               numHits - 1)). Ignored if numHits is -1
 	 * 			page - the starting page for results (if results end up on a page
 	 *				 before this page they are pushed to the end of the returned list)
 	 * @return a list containing the terms found that matched the query and what page of the document they appear on.
 	 */
-	PageResult[] find(String doc, int type, String text, int numHits, int page);
+	PageResult[] find(String doc, int type, String text, int numHits, int resultSet, int page);
 
     /**
      * Used to search the contents of multiple files
@@ -40,18 +45,29 @@ interface BSearchService1_0 {
      * 			type - allows the client to specify what type of results it wants to receive
      * 			text - the search term
      * 			numHits - the maximum number of results to return per file, a value of -1 means no limit
+     *          resultSet - specifies the result set number. Set 0 returns results numbered 0 ..
+     *              (numHits - 1). If this number is larger than 0 and the available number of  hits
+     *              is greater than numHits, the function will return results numbered from
+     *              (numHits * resultSet) .. (lesser of (available hits) and (numHits * resultSet +
+     *               numHits - 1)). Ignored if numHits is -1
      * @return a list containing the terms found that matched the query and what page of the document they appear on.
      */
-    PageResult[] findIn(inout List<String> docs, int type, String text, int numHits);
+    PageResult[] findIn(inout List<String> docs, int type, String text, int numHits, int resultSet);
 
     /**
      *  Used to search for file names
      * @param   dir - the root directory for the search.
      *          type - allows the client to specify how to filter the files
      *          text - the search term
-     *          numHits - the maximum number of results to return
+     *          numHits - the maximum number of results to return, a value of -1 means no limit
+     *          resultSet - specifies the result set number. Set 0 returns results numbered 0 ..
+     *              (numHits - 1). If this number is larger than 0 and the available number of  hits
+     *              is greater than numHits, the function will return results numbered from
+     *              (numHits * resultSet) .. (lesser of (available hits) and (numHits * resultSet +
+     *               numHits - 1)). Ignored if numHits is -1
     */
-	List<String> findName(inout List<String> docs, int type, String text, int numHits);
+	List<String> findName(inout List<String> docs, int type, String text, int numHits,
+	int resultSet);
 	
 	/**
 	 * used to send file contents to the indexing service. Because of the limitations of 

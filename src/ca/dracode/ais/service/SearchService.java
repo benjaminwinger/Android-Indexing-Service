@@ -47,8 +47,8 @@ import ca.dracode.ais.indexer.FileSearcher;
 public class SearchService extends Service {
     private static final String TAG = "ca.dracode.ais.service.SearchService";
     private final BSearchService1_0.Stub mBinder = new BSearchService1_0.Stub() {
-	    public PageResult[] find(String doc, int type, String text, int numHits, int page){
-		    return sm.find(text, doc, numHits, type, page);
+	    public PageResult[] find(String doc, int type, String text, int numHits, int set, int page){
+		    return sm.find(text, doc, numHits, type, set, page);
 	    }
 
 	    /**
@@ -62,8 +62,8 @@ public class SearchService extends Service {
 	     *      	numHits - the maximum number of results to return per file, a value of -1 means no limit
 	     * @return a list containing the terms found that matched the query and what page of the document they appear on.
 	     */
-	    public PageResult[] findIn(List<String> docs, int type, String text, int numHits){
-		    return sm.findIn(text, docs, numHits, type);
+	    public PageResult[] findIn(List<String> docs, int type, String text, int numHits, int set){
+		    return sm.findIn(text, docs, numHits, set, type);
 	    }
 
 	    /**
@@ -73,8 +73,9 @@ public class SearchService extends Service {
 	     *          text - the search term
 	     *          numHits - the maximum number of results to return
 	     */
-	    public List<String> findName(List<String> docs, int type, String text, int numHits){
-			return sm.findName(text, docs, numHits, type);
+	    public List<String> findName(List<String> docs, int type, String text, int numHits,
+                                     int set){
+			return sm.findName(text, docs, numHits, set, type);
 	    }
 
 	    /**
@@ -226,21 +227,24 @@ public class SearchService extends Service {
 		    return searcher.interrupt();
 	    }
 
-	    private List<String> findName(String term, List<String> directory, int numHits, int type){
-		    return this.searcher.findName(term, "path", directory, "path", numHits, type);
+	    private List<String> findName(String term, List<String> directory, int numHits, int set,
+                                      int type){
+		    return this.searcher.findName(term, "path", directory, "path", numHits, set, type);
 	    }
 
-	    private PageResult[] findIn(String term, List<String> documents, int numHits, int type){
-		    return this.searcher.findIn(term, "text", documents, "path", numHits, type);
+	    private PageResult[] findIn(String term, List<String> documents, int numHits, int set,
+                                    int type){
+		    return this.searcher.findIn(term, "text", documents, "path", numHits, set, type);
 	    }
 
-        private PageResult[] find(String term, String constrainValue, int maxResults, int type, int page) {
+        private PageResult[] find(String term, String constrainValue, int maxResults, int set,
+                                  int type, int page) {
             /**
              * TODO - Preload information about the index in the load function for use here
              * **/
 			Log.i(TAG, "Received request to search for: " + term);
             return this.searcher.find(term, "text",
-                    constrainValue, "path", maxResults, type, page);
+                    constrainValue, "path", maxResults, set, type, page);
         }
     }
 

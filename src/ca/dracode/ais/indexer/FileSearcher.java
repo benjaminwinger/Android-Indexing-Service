@@ -31,7 +31,11 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FieldCache;
+import org.apache.lucene.search.FieldCache.IntParser;
 import org.apache.lucene.search.FieldComparator;
+import org.apache.lucene.search.FieldComparator.NumericComparator;
+import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -53,10 +57,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 import ca.dracode.ais.indexdata.PageResult;
-import sun.misc.Compare;
 
 /*
  * FileSearcher.java
@@ -157,7 +159,8 @@ public class FileSearcher {
         return doc;
     }
 
-	public List<String> findName(String term, String field, List<String> constrainValues, String constrainField, int maxResults, int type){
+	public List<String> findName(String term, String field, List<String> constrainValues,
+                                 String constrainField, int maxResults, int set, int type){
 		Query qry = null;
 		if(this.interrupt){
 			this.interrupt = true;
@@ -190,7 +193,7 @@ public class FileSearcher {
 			Filter filter = new QueryWrapperFilter(cqry);
 			ScoreDoc[] hits = null;
 			try {
-				hits = indexSearcher.search(qry, filter, Integer.MAX_VALUE).scoreDocs;
+				hits = indexSearcher.search(qry, filter, maxResults + maxResults*set).scoreDocs;
 			} catch (IOException e) {
 				Log.e(TAG, "Error ", e);
 			}
@@ -199,7 +202,7 @@ public class FileSearcher {
 				return null;
 			}
 			ArrayList<String> docs = new ArrayList<String>();
-			for (int i = 0; i < hits.length && i < maxResults ; i++) {
+			for (int i = maxResults*set; i < hits.length && i < maxResults *set + maxResults; i++) {
 				try {
 					Document tmp =indexSearcher.doc(hits[i].doc);
 					docs.add(tmp.get("path"));
@@ -220,7 +223,8 @@ public class FileSearcher {
 		}
 	}
 
-	public PageResult[] findIn(String term, String field, List<String> constrainValues, String constrainField, int maxResults, int type){
+	public PageResult[] findIn(String term, String field, List<String> constrainValues,
+                               String constrainField, int maxResults, int set, int type){
 		Query qry = null;
 		if(this.interrupt){
 			this.interrupt = true;
@@ -253,7 +257,7 @@ public class FileSearcher {
 			Filter filter = new QueryWrapperFilter(cqry);
 			ScoreDoc[] hits = null;
 			try {
-				hits = indexSearcher.search(qry, filter, Integer.MAX_VALUE).scoreDocs;
+				hits = indexSearcher.search(qry, filter, maxResults*set + maxResults).scoreDocs;
 			} catch (IOException e) {
 				Log.e(TAG, "Error ", e);
 			}
@@ -262,7 +266,7 @@ public class FileSearcher {
 				return null;
 			}
 			ArrayList<Document> docs = new ArrayList<Document>();
-			for (int i = 0; i < hits.length && i < maxResults ; i++) {
+			for (int i = maxResults*set; i < hits.length && i < maxResults*set + maxResults ; i++) {
 				try {
 					docs.add(indexSearcher.doc(hits[i].doc));
 				} catch (IOException e) {
@@ -331,9 +335,64 @@ public class FileSearcher {
 		}
 	}
 
+    /** Adapted from Lucene 4.7 IntComparator
+     *   Identical but intended for sorting pages of a document starting at a certain page.
+     *   Previous pages are added to the end of the list
+     *  */
+    public abstract class PagedIntComparator extends NumericComparator<Integer> {
+        protected final int[] values;
+        private final IntParser parser;
+        protected FieldCache.Ints currentReaderValues;
+        protected int bottom;                           // Value of bottom of queue
+        protected int topValue;
+
+        PagedIntComparator(int numHits, String field, FieldCache.Parser parser,
+                         Integer missingValue) {
+            super(field, missingValue);
+            values = new int[numHits];
+            this.parser = (IntParser) parser;
+        }
+
+        @Override
+        public void copy(int slot, int doc) {
+            int v2 = currentReaderValues.get(doc);
+            // Test for v2 == 0 to save Bits.get method call for
+            // the common case (doc has value and value is non-zero):
+            if (docsWithField != null && v2 == 0 && !docsWithField.get(doc)) {
+                v2 = missingValue;
+            }
+
+            values[slot] = v2;
+        }
+
+        @Override
+        public FieldComparator<Integer> setNextReader(AtomicReaderContext context) throws IOException {
+            // NOTE: must do this before calling super otherwise
+            // we compute the docsWithField Bits twice!
+            currentReaderValues = FieldCache.DEFAULT.getInts(context.reader(), field, parser, missingValue != null);
+            return super.setNextReader(context);
+        }
+
+        @Override
+        public void setBottom(final int bottom) {
+            this.bottom = values[bottom];
+        }
+
+        @Override
+        public void setTopValue(Integer value) {
+            topValue = value;
+        }
+
+        @Override
+        public Integer value(int slot) {
+            return Integer.valueOf(values[slot]);
+        }
+    }
+
     // TODO - Boolean Search returns a huge number of results for simple queries, maxResults must be implemented
     public PageResult[] find(String term, String field, String constrainValue,
-                             String constrainField, int maxResults, int type, final int page) {
+                             String constrainField, int maxResults, int set, int type,
+                             final int page) {
 	    if(this.interrupt) {
 		    this.interrupt = false;
 		    return null;
@@ -365,8 +424,84 @@ public class FileSearcher {
             ScoreDoc[] hits = null;
             try {
                 Log.i(TAG, "Searching...");
-                hits = indexSearcher.search(qry, filter, maxResults,
-                        new Sort(new SortField("page",SortField.Type.INT))).scoreDocs;
+                hits = indexSearcher.search(qry, filter, maxResults * set + maxResults,
+                        new Sort(new SortField("page",new FieldComparatorSource() {
+                            @Override
+                            public FieldComparator<?> newComparator(String fieldname, int numhits,
+                                                                    int sortpos,
+                                                                    boolean reversed) throws
+                                    IOException {
+                                return new PagedIntComparator(numhits, fieldname, null,
+                                        null){
+                                    public int compare(int slot1, int slot2){
+                                        // TODO: there are sneaky non-branch ways to compute
+                                        // -1/+1/0 sign
+                                        // Cannot return values[slot1] - values[slot2] because that
+                                        // may overflow
+                                        final int v1 = this.values[slot1];
+                                        final int v2 = this.values[slot2];
+                                        if(v1 < page  && v2 >= page) {
+                                            return 1;
+                                        } else if (v1 >= page && v2 < page){
+                                            return -1;
+                                        } else{
+                                            if(v1 > v2) {
+                                                return 1;
+                                            } else if(v1 < v2) {
+                                                return -1;
+                                            } else {
+                                                return 0;
+                                            }
+                                        }
+                                    }
+
+                                    @Override
+                                    public int compareBottom(int doc) {
+                                        // TODO: there are sneaky non-branch ways to compute
+                                        // -1/+1/0 sign
+                                        // Cannot return bottom - values[slot2] because that
+                                        // may overflow
+                                        int v2 = this.currentReaderValues.get(doc);
+                                        // Test for v2 == 0 to save Bits.get method call for
+                                        // the common case (doc has value and value is non-zero):
+                                        if(docsWithField != null && v2 == 0 && !docsWithField.get(doc)) {
+                                            v2 = missingValue;
+                                        }
+                                        if(v2 < page){
+                                            return -1;
+                                        }
+                                        if(this.bottom > v2) {
+                                            return 1;
+                                        } else if(this.bottom < v2) {
+                                            return -1;
+                                        } else {
+                                            return 0;
+                                        }
+                                    }
+
+                                    @Override
+                                    public int compareTop(int doc){
+                                        int docValue = this.currentReaderValues.get(doc);
+                                        // Test for docValue == 0 to save Bits.get method call for
+                                        // the common case (doc has value and value is non-zero):
+                                        if(docsWithField != null && docValue == 0 && !docsWithField.get(doc)) {
+                                            docValue = missingValue;
+                                        }
+                                        // Cannot use Integer.compare (it's java 7)
+                                        if(this.topValue < page && docValue > page){
+                                            return 1;
+                                        }
+                                        if(this.topValue < docValue) {
+                                            return -1;
+                                        } else if(this.topValue > docValue) {
+                                            return 1;
+                                        } else {
+                                            return 0;
+                                        }
+                                    }
+                                };
+                            }
+                        }))).scoreDocs;
             } catch (IOException e) {
                 Log.e(TAG, "Error ", e);
             }
@@ -377,7 +512,8 @@ public class FileSearcher {
 
             Log.i(TAG, "Sorted " + hits.length);
             ArrayList<Document> docs = new ArrayList<Document>();
-            for (int i = 0; i < hits.length  ; i++) {
+            for (int i = maxResults*set; i < hits.length || i < (maxResults * set + maxResults);
+                 i++) {
                 try {
 	                Document tmp = indexSearcher.doc(hits[i].doc);
 	                int docPage = Integer.parseInt(tmp.get("page"));
