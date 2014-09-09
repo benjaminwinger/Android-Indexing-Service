@@ -37,8 +37,7 @@ import java.util.Timer;
 public class FileListener extends Service {
     private static final String TAG = "ca.dracode.ais.service.FileListener";
     private AISObserver listener;
-    private IBinder mBinder = new LocalBinder();apv
-    es file exp
+    private IBinder mBinder = new LocalBinder();
     private Timer timeSinceLastChange;
     private static final int DELAY = 2000;
 
