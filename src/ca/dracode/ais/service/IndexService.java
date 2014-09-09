@@ -32,12 +32,11 @@ import android.os.Environment;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
+
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -67,11 +66,27 @@ public class IndexService extends Service {
 	private NotificationManager nm;
 	private int mIsBound = 0;
 	private boolean doneCrawling;
+    private boolean canStop = false;
 	private ArrayList<ParserService> services;
 	private Queue<Indexable> pIndexes;
 	private FileIndexer indexer;
     private final int maxTasks = 30;
     private int tasks = 0;
+    private boolean crawl = false;
+
+    public int onStartCommand (Intent intent, int flags, int startId){
+        this.crawl = intent.getBooleanExtra("crawl", false);
+        if(this.crawl){
+            canStop = true;
+            doneCrawling = false;
+            this.crawl();
+        } else {
+            doneCrawling = true;
+            canStop = false;
+            Log.i(TAG, "Not crawling, can stop at any time");
+        }
+        return START_STICKY;
+    }
 
 	@Override
 	public void onCreate() {
@@ -83,7 +98,6 @@ public class IndexService extends Service {
 			boolean mExternalStorageAvailable;
 			boolean mExternalStorageWriteable;
 			String state = Environment.getExternalStorageState();
-
 			if (Environment.MEDIA_MOUNTED.equals(state)) {
 				// We can read and write the media
 				mExternalStorageAvailable = mExternalStorageWriteable = true;
@@ -92,30 +106,27 @@ public class IndexService extends Service {
 				mExternalStorageAvailable = true;
 				mExternalStorageWriteable = false;
 			} else {
-				// Something else is wrong. It may be one of many other states,
-				// but
-				// all we need
-				// to know is we can neither read nor write
 				mExternalStorageAvailable = mExternalStorageWriteable = false;
 			}
 
 			if (mExternalStorageAvailable && mExternalStorageWriteable) {
-				this.loadServices(new File(Environment
-						.getExternalStorageDirectory() + "/Android/data"));
+				this.getServices(new File(Environment
+						.getExternalStorageDirectory() + "/Android/data"), this.services);
 			} else {
 				notify("Error: External Storage not mounted", 2);
 				return;
 			}
-			this.loadServices(Environment.getExternalStorageDirectory());
+            Log.i(TAG, "Creating Indexer");
 			this.indexer = new FileIndexer();
+        Log.i(TAG, "Created Indexer");
 			this.pIndexes = new LinkedList<Indexable>();
-			this.doneCrawling = false;
+			this.doneCrawling = true;
 			new Thread(new Runnable() {
 				public void run() {
                     //Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
 					while (true) {
 						try {
-							Thread.sleep(0, 10);
+							Thread.sleep(1);
 						} catch (InterruptedException e1) {
 							e1.printStackTrace();
 						}
@@ -124,6 +135,7 @@ public class IndexService extends Service {
                             Log.i(TAG, "Indexing: " + tmp.file.getAbsolutePath());
 							if (tmp.tmpData == null || tmp.tmpData.size() == 0) {
 								indexer.buildIndex(tmp.file.getAbsolutePath());
+                                tasks--;
 							} else {
 								try {
 									indexer.buildIndex(tmp.tmpData,
@@ -135,29 +147,25 @@ public class IndexService extends Service {
 							}
 						}
 						if (doneCrawling && mIsBound == 0
-								&& pIndexes.size() == 0) {
+								&& pIndexes.size() == 0 && canStop) {
 							Log.i(TAG, "Done Indexing, Closing... ");
 							indexer.close();
 							doneCrawling = false;
-							IndexService.this.stopSelf();
+                            NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+                            notificationManager.cancel(1);
+                            IndexService.this.stopSelf();
+                            break;
 						}
 					}
 				}
 			}).start();
-            new Thread(new Runnable(){
-                public void run(){
-                    //Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-                    try {
-                        crawl(Environment.getExternalStorageDirectory());
-                        doneCrawling = true;
-                    } catch(IOException e){
-                        Log.e(TAG, "Error", e);
-                    }
-                }
-            }).start();
 	}
 
-	public void loadServices(File directory) {
+    public void stopWhenReady(){
+        canStop = true;
+    }
+
+	public static void getServices(File directory, ArrayList<ParserService> services) {
 		File[] contents = directory.listFiles();
 		for (File content : contents) {
 			if (content.canRead()) {
@@ -183,7 +191,7 @@ public class IndexService extends Service {
 									}
 								}
 								br.close();
-								this.services.add(new ParserService(name,
+								services.add(new ParserService(name,
 										tmpExt));
 							} catch (IOException e) {
 								e.printStackTrace();
@@ -191,7 +199,7 @@ public class IndexService extends Service {
 						}
 					}
 				} else {
-					this.loadServices(content);
+					getServices(content, services);
 				}
 			}
 		}
@@ -201,12 +209,29 @@ public class IndexService extends Service {
 		nm.cancel(1);
 	}
 
+    public void crawl(){
+        new Thread(new Runnable(){
+            public void run(){
+                //Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                try {
+                    crawl(Environment.getExternalStorageDirectory());
+                    doneCrawling = true;
+                } catch(IOException e){
+                    Log.e(TAG, "Error", e);
+                }
+            }
+        }).start();
+    }
+
 	public void crawl(File directory) throws IOException {
 		// Log.i(TAG, "Indexing directory " + directory.getAbsolutePath());
 		File[] contents = directory.listFiles();
         Log.i(TAG, "Indexer Entered Directory " + directory.getAbsolutePath());
 		if (contents != null) {
 			for (File content : contents) {
+                if(content.getAbsolutePath().contains("Android/data/ca.dracode.ais")){
+                    return;
+                }
                 while(tasks > maxTasks){
                     try {
                         Thread.sleep(10);
@@ -215,60 +240,7 @@ public class IndexService extends Service {
                     }
                 }
 				if (content.canRead()) {
-					if (content.isFile()) {
-						String serviceName = null;
-						int size = services.size();
-						for (int j = 0; j < size; j++) {
-							int mLoc = content.getName().lastIndexOf(".") + 1;
-							if (mLoc != 0) {
-								boolean found = services.get(j).checkExtension(
-										content.getName().substring(mLoc)
-												.toLowerCase()
-								);
-								if (found) {
-									serviceName = services.get(j).getName();
-								}
-							}
-						}
-						if (serviceName != null) {
-							String files = "";
-							try {
-								BufferedReader br = new BufferedReader(
-										new FileReader(
-												FileIndexer.getRootStorageDir()
-														+ "/FileLocations.txt"
-										)
-								);
-								String tmp;
-								while ((tmp = br.readLine()) != null) {
-									files = files.concat(tmp);
-									files = files.concat("\n");
-								}
-								br.close();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-							if (!files.contains(content.getAbsolutePath())) {
-								try {
-									BufferedWriter bw = new BufferedWriter(
-											new FileWriter(
-													FileIndexer.getRootStorageDir()
-															+ "/FileLocations.txt"
-											)
-									);
-									bw.append(files).append(content.getAbsolutePath()).append("\n");
-									bw.close();
-								} catch (IOException e) {
-									e.printStackTrace();
-								}
-							}
-							createIndex(content, serviceName);
-						} else {
-							createIndex(content, null);
-						}
-					} else if(content.isDirectory()){
-						createIndex(content, null);
-					}
+					createIndex(content);
 				}
 			}
 			for (File content : contents) {
@@ -283,7 +255,25 @@ public class IndexService extends Service {
 		}
 	}
 
-	public void createIndex(File content, String serviceName){
+
+
+	public void createIndex(File content){
+        String serviceName = null;
+        if (content.isFile()) {
+            int size = services.size();
+            for (int j = 0; j < size; j++) {
+                int mLoc = content.getName().lastIndexOf(".") + 1;
+                if (mLoc != 0) {
+                    boolean found = services.get(j).checkExtension(
+                            content.getName().substring(mLoc)
+                                    .toLowerCase()
+                    );
+                    if (found) {
+                        serviceName = services.get(j).getName();
+                    }
+                }
+            }
+        }
 		try {
             int state =indexer.checkForIndex("id",
                     content.getAbsolutePath() + ":meta", content.lastModified());
@@ -315,6 +305,10 @@ public class IndexService extends Service {
 			e.printStackTrace();
 		}
 	}
+
+    public void removeIndex(String path){
+
+    }
 
 	public void notify(CharSequence c, int id) {
 		Notification notification = new Notification(R.drawable.file_icon, c,

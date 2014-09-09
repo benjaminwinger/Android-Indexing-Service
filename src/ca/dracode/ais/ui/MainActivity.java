@@ -27,6 +27,8 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 import ca.dracode.ais.R;
+import ca.dracode.ais.service.FileListener;
+import ca.dracode.ais.service.IndexService;
 
 public class MainActivity extends Activity {
 
@@ -34,6 +36,11 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		this.setContentView(R.layout.activity_main);
         TextView t = (TextView)findViewById(R.id.textView1);
+        Intent serviceIntent = new Intent(this, IndexService.class);
+        serviceIntent.putExtra("crawl", true);
+        this.startService(serviceIntent);
+        Intent serviceIntent2 = new Intent(this, FileListener.class);
+        this.startService(serviceIntent2);
 	}
 
 	@Override

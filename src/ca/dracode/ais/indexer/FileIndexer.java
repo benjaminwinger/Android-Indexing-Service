@@ -137,7 +137,7 @@ public class FileIndexer {
 	// called on the SearchService from building larger indexes
 
 
-	public int checkForIndex(String field, String value, long modified) throws Exception {
+	public int checkForIndex(String field, String value, long modified) throws IOException {
         Document doc = this.searcher.getDocument(field, value);
         if(doc != null) {
             if( Long.parseLong(doc.get("modified")) < modified){
@@ -149,6 +149,18 @@ public class FileIndexer {
             return -1;
         }
 	}
+
+    public boolean removeIndex(String path){
+        try {
+            if(this.checkForIndex("path", path, 0) != -1) {
+                this.writer.deleteDocuments(new Term("path", path));
+                return true;
+            }
+        } catch(IOException e){
+            Log.e(TAG, "Error ", e);
+        }
+        return false;
+    }
 
 	public int buildIndex(String filename){
 		try {

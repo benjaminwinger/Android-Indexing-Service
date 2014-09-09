@@ -55,6 +55,7 @@ public class Alarm extends BroadcastReceiver {
 		// Starts the indexService
 		if (!this.isMyServiceRunning(context)) {
 			Intent serviceIntent = new Intent(context, IndexService.class);
+            serviceIntent.putExtra("crawl", true);
 			context.startService(serviceIntent);
 		}
 	}
