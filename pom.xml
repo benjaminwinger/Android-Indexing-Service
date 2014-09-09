@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>ca.dracode</groupId>
     <artifactId>ais</artifactId>
-    <version>0.4.0-TESTING</version>
+    <version>0.4.0</version>
     <packaging>apk</packaging>
     <name>AndroidIndexingService</name>
     <dependencies>
