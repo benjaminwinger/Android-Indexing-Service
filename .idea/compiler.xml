@@ -23,6 +23,7 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
         <module name="AIS" />
+        <module name="android-indexing-service" />
       </profile>
     </annotationProcessing>
   </component>

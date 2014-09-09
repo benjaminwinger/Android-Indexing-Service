@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AIS.iml" filepath="$PROJECT_DIR$/AIS.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android-indexing-service.iml" filepath="$PROJECT_DIR$/android-indexing-service.iml" />
     </modules>
   </component>
 </project>
