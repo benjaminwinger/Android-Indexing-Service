@@ -4,7 +4,7 @@ Android Indexing Service
 
 (C) 2014 Dracode Software
 
-Version: 0.5.0
+Version: 0.5.1
 
 Authors: Benjamin Winger
 
