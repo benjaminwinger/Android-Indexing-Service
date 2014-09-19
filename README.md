@@ -17,15 +17,14 @@ Android Indexing Service is built using the Apache Maven build tool. Simply down
 ```
 mvn clean install
 ```
-
+from inside the source directory.
 
 Optionally, you can use
 
 ```
 mvn clean build android:deploy
 ```
-
-to build and install the apk on a connected android device that is recognized by adb.
+to build and install the apk directly to a device for testing.
 
 ## Current Features ##
 The current version of Android Indexing service includes the following features:
