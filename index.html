@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Android-indexing-service by dracode</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/dracode/Android-Indexing-Service">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/dracode/Android-Indexing-Service/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/dracode/Android-Indexing-Service/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Android-indexing-service</h1>
+          <p></p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/dracode">dracode</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+        </div>
+
+        <h1>
+<a name="readme" class="anchor" href="#readme"><span class="octicon octicon-link"></span></a>README</h1>
+
+<p>Android Indexing Service</p>
+
+<p>(C) 2014 Dracode Software</p>
+
+<p>Version: 0.5.0</p>
+
+<p>Authors: Benjamin Winger</p>
+
+<p>An android application that exposes a service to allow other applications to search quickly search through files on a device using the Apache Lucene search framework. This means they do not have to implement Lucene themselves or deal with indexing and also reduces application size as implementing the AIS Client Library is much smaller than implementing Apache Lucene (30KB vs ~2.2MB or more). 
+It also serves as a centralised index so that the database is shared between applications and reduces redundancy from having many applications indexing individually.</p>
+
+<h2>
+<a name="compiling" class="anchor" href="#compiling"><span class="octicon octicon-link"></span></a>Compiling</h2>
+
+<p>Android Indexing Service is built using the Apache Maven build tool. Simply download the source and execute</p>
+
+<pre><code>#!bash
+
+mvn clean install
+</code></pre>
+
+<p>Optionally, you can use</p>
+
+<pre><code>#!bash
+
+mvn clean build android:deploy
+</code></pre>
+
+<p>to build and install the apk on a connected android device that is recognized by adb.</p>
+
+<h2>
+<a name="current-features" class="anchor" href="#current-features"><span class="octicon octicon-link"></span></a>Current Features</h2>
+
+<p>The current version of Android Indexing service includes the following features:</p>
+
+<ul>
+<li>An active indexer that creates index entries for every file on the external storage directory of the device</li>
+<li>A passive indexer that updates the index as files are changed</li>
+<li>A search service that allows for boolean searches and (experimental) fuzzy searches</li>
+<li>A preferences screen that allows you to enable or disable indexing</li>
+</ul><h2>
+<a name="known-issues" class="anchor" href="#known-issues"><span class="octicon octicon-link"></span></a>Known Issues</h2>
+
+<ul>
+<li>The user interface is almost non-existant</li>
+<li>There is no way to customize anything using the UI</li>
+<li>The service has been tested on a very limited number of devices, there are no guarantees that it will work properly on every device</li>
+</ul><h3>
+<a name="contact" class="anchor" href="#contact"><span class="octicon octicon-link"></span></a>Contact</h3>
+
+<p>For more information, contact Benjamin Winger (<a href="mailto:winger.benjamin@gmail.com">winger.benjamin@gmail.com</a>).</p>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+    
+  </body>
+</html>
