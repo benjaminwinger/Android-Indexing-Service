@@ -15,8 +15,6 @@ It also serves as a centralised index so that the database is shared between app
 Android Indexing Service is built using the Apache Maven build tool. Simply download the source and execute
 
 ```
-#!bash
-
 mvn clean install
 ```
 
@@ -24,8 +22,6 @@ mvn clean install
 Optionally, you can use
 
 ```
-#!bash
-
 mvn clean build android:deploy
 ```
 
