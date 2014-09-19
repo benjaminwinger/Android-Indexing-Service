@@ -27,5 +27,6 @@
     <string name="notification_indexer_finished">Indexer finished indexing</string>
     <string name="notification_indexer_error">Indexing error</string>
     <string name="notification_indexer_indexed_file">Indexed file: </string>
-
+    <string name="prefs_indexer_disabled">Indexing is enabled</string>
+    <string name="prefs_indexer_enabled">Indexing is disabled</string>
 </resources>

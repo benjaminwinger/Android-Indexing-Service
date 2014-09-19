@@ -58,12 +58,13 @@
             android:name="ca.dracode.ais.service.IndexService"
             android:enabled="true"
             android:exported="false"
-            android:process=":index"></service>
+            android:process=":index"/>
         <service
             android:name="ca.dracode.ais.service.SearchService"
             android:exported="true"
             android:label="@string/app_name"
-            android:process=":remote">
+            android:process=":search"
+            android:permission="android.permission.AIS_SEARCH">
             <intent-filter>
                 <action android:name="ca.drackde.ais.service.IndexService.SEARCH"></action>
             </intent-filter>
@@ -72,6 +73,7 @@
                  android:label="@string/app_name"
                  android:process=":index">
             </service>
+        <service android:name=".service.InfoProxy"/>
 
         <receiver android:name="ca.dracode.ais.alarm.AutoStart">
             <intent-filter>

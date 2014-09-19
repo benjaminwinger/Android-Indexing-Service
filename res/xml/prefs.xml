@@ -22,6 +22,10 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent">
-<CheckBoxPreference
-    android:title="Indexing Enabled"/>
+<SwitchPreference
+    android:title="Indexing Enabled"
+    android:defaultValue="true"
+    android:textOn="@string/prefs_indexer_enabled"
+    android:textOff="@string/prefs_indexer_disabled"
+    android:key="enabled"/>
 </PreferenceScreen>

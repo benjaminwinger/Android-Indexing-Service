@@ -25,6 +25,8 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 import ca.dracode.ais.service.IndexService;
 
@@ -44,7 +46,9 @@ public class Alarm extends BroadcastReceiver {
 		Intent i = new Intent(context, Alarm.class);
 		PendingIntent pi = PendingIntent.getBroadcast(context, 0, i, 0);
 		AlarmManager am = (AlarmManager) context.getSystemService("Context.ALARM_SERVICE");
-		am.cancel(pi);
+		if(am != null) {
+            am.cancel(pi);
+        }
 	}
 
 	private static int getMinutes(int minutes) {
@@ -53,7 +57,9 @@ public class Alarm extends BroadcastReceiver {
 
 	public void onReceive(Context context, Intent intent) {
 		// Starts the indexService
-		if (!this.isMyServiceRunning(context)) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+
+		if (!this.isMyServiceRunning(context) && prefs.getBoolean("enabled", true)) {
 			Intent serviceIntent = new Intent(context, IndexService.class);
             serviceIntent.putExtra("crawl", true);
 			context.startService(serviceIntent);

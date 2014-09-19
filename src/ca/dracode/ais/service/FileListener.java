@@ -37,7 +37,7 @@ import java.util.Timer;
 public class FileListener extends Service {
     private static final String TAG = "ca.dracode.ais.service.FileListener";
     private AISObserver listener;
-    private IBinder mBinder = new LocalBinder();
+    private IBinder mLocalBinder = new LocalBinder();
     private Timer timeSinceLastChange;
     private static final int DELAY = 2000;
 
@@ -61,6 +61,11 @@ public class FileListener extends Service {
             }
         }
     };
+
+    public void stopListener(){
+        this.listener.stopWatching();
+        this.stopSelf();
+    }
 
     private class AISObserver extends FileObserver{
         public AISObserver(String path){
@@ -111,13 +116,13 @@ public class FileListener extends Service {
     }
 
     public class LocalBinder extends Binder {
-        FileListener getService() {
+        public FileListener getService() {
             return FileListener.this;
         }
     }
 
-    public IBinder onBind(Intent intent) {
-        return mBinder;
+    public IBinder onBind(Intent intent){
+        return mLocalBinder;
     }
 
 

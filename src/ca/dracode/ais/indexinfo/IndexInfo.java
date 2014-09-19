@@ -19,8 +19,21 @@
 
 package ca.dracode.ais.indexinfo;
 
-public class IndexInfo {
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.util.Log;
 
+import android.os.RemoteException;
+
+import ca.dracode.ais.alarm.Alarm;
+import ca.dracode.ais.service.FileListener;
+
+public class IndexInfo {
+    private static final String TAG = "ca.dracode.ais.indexinfo";
+    private boolean enabled = true;
 	/*
 		Get Current State of the Indexer
 		@return true if the indexer is running, false otherwise
@@ -51,8 +64,13 @@ public class IndexInfo {
 		@precondition the indexer is running
 		@postcondition the indexer will no longer be running
 	 */
-	public void stopIndexer() {
-
+	public void stopIndexer(Context context) {
+        Alarm.CancelAlarm(context);
+        try {
+            mService.stopIndexer();
+        } catch(RemoteException e){
+            Log.e(TAG, "Error", e);
+        }
 	}
 
 	/*
@@ -60,7 +78,24 @@ public class IndexInfo {
 		@precondition the indexer is not running
 		@postcondition the indexer will be running
 	 */
-	public void startIndexer() {
-
+	public void startIndexer(Context context) {
+        Alarm.SetAlarm(context);
+        Intent serviceIntent = new Intent(context, FileListener.class);
+        context.startService(serviceIntent);
 	}
+
+    private IndexComm mService;
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        // Called when the connection with the service is established
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            mService = IndexComm.Stub.asInterface(service);
+        }
+
+        // Called when the connection with the service disconnects unexpectedly
+        public void onServiceDisconnected(ComponentName className) {
+            Log.e(TAG, "Service has unexpectedly disconnected");
+            mService = null;
+        }
+    };
 }

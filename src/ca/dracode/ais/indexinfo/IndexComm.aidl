@@ -1,3 +1,5 @@
+package ca.dracode.ais.indexinfo;
+
 /*******************************************************************************
  * Copyright 2014 Benjamin Winger.
  *
@@ -16,26 +18,25 @@
  * You should have received a copy of the GNU General Public License
  * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
+interface IndexComm {
+    void stopIndexer();
 
-package ca.dracode.ais.alarm;
+    /*
+        Get Current State of the Indexer
+        @return true if the indexer is running, false otherwise
+     */
+    boolean isIndexerRunning();
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
+    /*
+        Sets the file change listener
+        @param a listener that will be notified whenever the indexer starts indexing a
+            new file
+     */
+    void setFileChangeListener(out FileChangeListener listener);
 
-import ca.dracode.ais.service.FileListener;
-
-public class AutoStart extends BroadcastReceiver {
-
-	public void onReceive(Context context, Intent intent) {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-
-		if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED") && prefs.getBoolean("enabled", true)) {
-			Alarm.SetAlarm(context);
-            Intent serviceIntent = new Intent(context, FileListener.class);
-            context.startService(serviceIntent);
-		}
-	}
+    /*
+        Gets the number of documents in the index
+        @return the number of documents in the index
+     */
+    int getNumDocumentsInIndex();
 }

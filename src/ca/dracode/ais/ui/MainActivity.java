@@ -27,6 +27,7 @@ import android.view.MenuItem;
 import android.widget.TextView;
 
 import ca.dracode.ais.R;
+import ca.dracode.ais.alarm.Alarm;
 import ca.dracode.ais.service.FileListener;
 import ca.dracode.ais.service.IndexService;
 
@@ -41,6 +42,7 @@ public class MainActivity extends Activity {
         this.startService(serviceIntent);
         Intent serviceIntent2 = new Intent(this, FileListener.class);
         this.startService(serviceIntent2);
+        Alarm.SetAlarm(this);
 	}
 
 	@Override
