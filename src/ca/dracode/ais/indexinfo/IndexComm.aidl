@@ -21,20 +21,18 @@ package ca.dracode.ais.indexinfo;
 interface IndexComm {
     void stopIndexer();
 
-    /*
+    /**
         Get Current State of the Indexer
         @return true if the indexer is running, false otherwise
      */
     boolean isIndexerRunning();
 
-    /*
-        Sets the file change listener
-        @param a listener that will be notified whenever the indexer starts indexing a
-            new file
+    /**
+        Gets the path of the directory currently being indexed
      */
-    void setFileChangeListener(out FileChangeListener listener);
+    String getCurrentIndexPath();
 
-    /*
+    /**
         Gets the number of documents in the index
         @return the number of documents in the index
      */

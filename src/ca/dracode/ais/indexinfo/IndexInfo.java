@@ -24,9 +24,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-import android.util.Log;
-
 import android.os.RemoteException;
+import android.util.Log;
 
 import ca.dracode.ais.alarm.Alarm;
 import ca.dracode.ais.service.FileListener;
@@ -34,58 +33,7 @@ import ca.dracode.ais.service.FileListener;
 public class IndexInfo {
     private static final String TAG = "ca.dracode.ais.indexinfo";
     private boolean enabled = true;
-	/*
-		Get Current State of the Indexer
-		@return true if the indexer is running, false otherwise
-	 */
-	public boolean isIndexerRunning() {
-		return false;
-	}
-
-	/*
-		Sets the file change listener
-		@param a listener that will be notified whenever the indexer starts indexing a
-			new file
-	 */
-	public void setFileChangeListener(FileChangeListener listener) {
-
-	}
-
-	/*
-		Gets the number of documents in the index
-		@return the number of documents in the index
-	 */
-	public int getNumDocumentsInIndex() {
-		return 0;
-	}
-
-	/*
-		Manually stops the indexer
-		@precondition the indexer is running
-		@postcondition the indexer will no longer be running
-	 */
-	public void stopIndexer(Context context) {
-        Alarm.CancelAlarm(context);
-        try {
-            mService.stopIndexer();
-        } catch(RemoteException e){
-            Log.e(TAG, "Error", e);
-        }
-	}
-
-	/*
-		Manually starts the indexer
-		@precondition the indexer is not running
-		@postcondition the indexer will be running
-	 */
-	public void startIndexer(Context context) {
-        Alarm.SetAlarm(context);
-        Intent serviceIntent = new Intent(context, FileListener.class);
-        context.startService(serviceIntent);
-	}
-
     private IndexComm mService;
-
     private ServiceConnection mConnection = new ServiceConnection() {
         // Called when the connection with the service is established
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -98,4 +46,56 @@ public class IndexInfo {
             mService = null;
         }
     };
+
+    /**
+     * Get Current State of the Indexer
+     * @return true if the indexer is running, false otherwise
+     */
+    public boolean isIndexerRunning() {
+        return false;
+    }
+
+    /**
+     * Sets the file change listener
+     * @return The path that the indexer is currently indexing
+     */
+    public String getCurrentIndexPath(){
+        try {
+            return mService.getCurrentIndexPath();
+        } catch(RemoteException e){
+            Log.e(TAG, "Error", e);
+        }
+        return "Error connecting to the service!";
+    }
+
+    /**
+     * Gets the number of documents in the index
+     * @return the number of documents in the index
+     */
+    public int getNumDocumentsInIndex() {
+        return 0;
+    }
+
+    /**
+     * Manually stops the indexer
+     * @param context
+     */
+    public void stopIndexer(Context context) {
+        Alarm.CancelAlarm(context);
+        try {
+            mService.stopIndexer();
+        } catch(RemoteException e) {
+            Log.e(TAG, "Error", e);
+        }
+    }
+
+    /**
+     * Manually starts the indexer
+     * @param context
+     */
+    public void startIndexer(Context context) {
+        Alarm.SetAlarm(context);
+        Intent serviceIntent = new Intent(context, FileListener.class);
+        context.startService(serviceIntent);
+    }
 }

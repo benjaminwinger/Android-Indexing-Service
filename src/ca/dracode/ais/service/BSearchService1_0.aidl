@@ -56,7 +56,7 @@ interface BSearchService1_0 {
 
     /**
      *  Used to search for file names
-     * @param   dir - the root directory for the search.
+     * @param   docs - the root directory for the search.
      *          type - allows the client to specify how to filter the files
      *          text - the search term
      *          numHits - the maximum number of results to return, a value of -1 means no limit

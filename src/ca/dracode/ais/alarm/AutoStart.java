@@ -29,13 +29,18 @@ import ca.dracode.ais.service.FileListener;
 
 public class AutoStart extends BroadcastReceiver {
 
-	public void onReceive(Context context, Intent intent) {
+    /**
+     * Checks if the received action is BOOT_COMPLETED and if so, sets the alarm for the Indexer
+     * @param context
+     * @param intent
+     */
+    public void onReceive(Context context, Intent intent) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 
-		if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED") && prefs.getBoolean("enabled", true)) {
-			Alarm.SetAlarm(context);
+        if(intent.getAction().equals("android.intent.action.BOOT_COMPLETED") && prefs.getBoolean("enabled", true)) {
+            Alarm.SetAlarm(context);
             Intent serviceIntent = new Intent(context, FileListener.class);
             context.startService(serviceIntent);
-		}
-	}
+        }
+    }
 }

@@ -36,20 +36,12 @@ import java.util.Timer;
 
 public class FileListener extends Service {
     private static final String TAG = "ca.dracode.ais.service.FileListener";
+    private static final int DELAY = 2000;
+    Handler timerHandler = new Handler();
     private AISObserver listener;
     private IBinder mLocalBinder = new LocalBinder();
     private Timer timeSinceLastChange;
-    private static final int DELAY = 2000;
-
-    @Override
-    public void onCreate(){
-        this.timeSinceLastChange = new Timer();
-        this.listener = new AISObserver(Environment.getExternalStorageDirectory().getPath());
-        Log.i(TAG, "Starting listener on " + Environment.getExternalStorageDirectory().getPath());
-        this.listener.startWatching();
-    }
-
-    Handler timerHandler = new Handler();
+    private IndexService mBoundService;
     Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
@@ -61,30 +53,77 @@ public class FileListener extends Service {
             }
         }
     };
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            mBoundService = ((IndexService.LocalBinder) service).getService();
+        }
 
-    public void stopListener(){
+        public void onServiceDisconnected(ComponentName className) {
+            mBoundService = null;
+        }
+    };
+    private boolean mIsBound = false;
+
+    @Override
+    public void onCreate() {
+        this.timeSinceLastChange = new Timer();
+        this.listener = new AISObserver(Environment.getExternalStorageDirectory().getPath());
+        Log.i(TAG, "Starting listener on " + Environment.getExternalStorageDirectory().getPath());
+        this.listener.startWatching();
+    }
+
+    /**
+     * Tells the listener to stop watching the filesystem and close
+     */
+    public void stopListener() {
         this.listener.stopWatching();
+        this.doUnbindService();
         this.stopSelf();
     }
 
-    private class AISObserver extends FileObserver{
-        public AISObserver(String path){
+    public IBinder onBind(Intent intent) {
+        return mLocalBinder;
+    }
+
+    private void doBindService() {
+        bindService(new Intent(FileListener.this,
+                IndexService.class), mConnection, Context.BIND_AUTO_CREATE);
+        mIsBound = true;
+    }
+
+    private void doUnbindService() {
+        if(mIsBound) {
+            // Detach our existing connection.
+            unbindService(mConnection);
+            mIsBound = false;
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        doUnbindService();
+    }
+
+    private class AISObserver extends FileObserver {
+        public AISObserver(String path) {
             super(path);
         }
 
-        public void onEvent(int event, String path){
+        @Override
+        public void onEvent(int event, String path) {
             if(path != null) {
                 if(path.contains("Android/data/ca.dracode.ais")) {
                     return;
                 }
                 if(event == FileObserver.MODIFY || event
                         == FileObserver.MOVED_TO || event == FileObserver.CREATE) {
-                    if(mBoundService == null){
+                    if(mBoundService == null) {
                         doBindService();
-                        while(mBoundService == null){
-                            try{
+                        while(mBoundService == null) {
+                            try {
                                 Thread.sleep(10);
-                            } catch(InterruptedException e){
+                            } catch(InterruptedException e) {
                                 Log.e(TAG, "Error ", e);
                             }
                         }
@@ -95,12 +134,12 @@ public class FileListener extends Service {
                     timerHandler.postDelayed(timerRunnable, DELAY);
                     Log.i(TAG, "File changed: " + path);
                 } else if(event == FileObserver.DELETE || event == FileObserver.MOVED_FROM) {
-                    if(mBoundService == null){
+                    if(mBoundService == null) {
                         doBindService();
-                        while(mBoundService == null){
-                            try{
+                        while(mBoundService == null) {
+                            try {
                                 Thread.sleep(10);
-                            } catch(InterruptedException e){
+                            } catch(InterruptedException e) {
                                 Log.e(TAG, "Error ", e);
                             }
                         }
@@ -119,56 +158,5 @@ public class FileListener extends Service {
         public FileListener getService() {
             return FileListener.this;
         }
-    }
-
-    public IBinder onBind(Intent intent){
-        return mLocalBinder;
-    }
-
-
-    private IndexService mBoundService;
-    private boolean mIsBound = false;
-
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            // This is called when the connection with the service has been
-            // established, giving us the service object we can use to
-            // interact with the service.  Because we have bound to a explicit
-            // service that we know is running in our own process, we can
-            // cast its IBinder to a concrete class and directly access it.
-            mBoundService = ((IndexService.LocalBinder)service).getService();
-        }
-
-        public void onServiceDisconnected(ComponentName className) {
-            // This is called when the connection with the service has been
-            // unexpectedly disconnected -- that is, its process crashed.
-            // Because it is running in our same process, we should never
-            // see this happen.
-            mBoundService = null;
-        }
-    };
-
-    void doBindService() {
-        // Establish a connection with the service.  We use an explicit
-        // class name because we want a specific service implementation that
-        // we know will be running in our own process (and thus won't be
-        // supporting component replacement by other applications).
-        bindService(new Intent(FileListener.this,
-                IndexService.class), mConnection, Context.BIND_AUTO_CREATE);
-        mIsBound = true;
-    }
-
-    void doUnbindService() {
-        if (mIsBound) {
-            // Detach our existing connection.
-            unbindService(mConnection);
-            mIsBound = false;
-        }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        doUnbindService();
     }
 }

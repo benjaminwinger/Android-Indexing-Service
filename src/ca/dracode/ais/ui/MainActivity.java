@@ -33,29 +33,31 @@ import ca.dracode.ais.service.IndexService;
 
 public class MainActivity extends Activity {
 
-	public void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		this.setContentView(R.layout.activity_main);
-        TextView t = (TextView)findViewById(R.id.textView1);
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        this.setContentView(R.layout.activity_main);
+        TextView t = (TextView) findViewById(R.id.textView1);
+
+        // TODO Remove testing code
         Intent serviceIntent = new Intent(this, IndexService.class);
         serviceIntent.putExtra("crawl", true);
         this.startService(serviceIntent);
         Intent serviceIntent2 = new Intent(this, FileListener.class);
         this.startService(serviceIntent2);
         Alarm.SetAlarm(this);
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
+    }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item){
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+        if(id == R.id.action_settings) {
             Intent i = new Intent(this, AISPreferences.class);
             startActivity(i);
             return true;

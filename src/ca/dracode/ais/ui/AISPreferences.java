@@ -28,27 +28,22 @@ import ca.dracode.ais.R;
 import ca.dracode.ais.indexinfo.IndexInfo;
 
 public class AISPreferences extends PreferenceActivity {
-    private boolean enabled;
     private final IndexInfo indexInfo = new IndexInfo();
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.prefs);
         SwitchPreference mEnableWifi = (SwitchPreference) findPreference("enabled");
         mEnableWifi.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-
             @Override
             public boolean onPreferenceChange(Preference preference, Object newValue) {
-                if (preference.isEnabled() != newValue) {
-                    if(!((Boolean)newValue)){
+                    if(!((Boolean) newValue)) {
                         indexInfo.stopIndexer(getApplicationContext());
                     } else {
                         indexInfo.startIndexer(getApplicationContext());
                     }
                     return true;
-                } else {
-                    return false;
-                }
             }
         });
     }

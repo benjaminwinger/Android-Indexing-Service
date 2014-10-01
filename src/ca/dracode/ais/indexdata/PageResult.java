@@ -43,29 +43,26 @@ public class PageResult implements Parcelable {
             return new PageResult[size];
         }
     };
-    /**
-     *
-     */
     private static final long serialVersionUID = -2204743540787327738L;
     public List<String> text;
     public int page;
-	public String document;
+    public String document;
 
     public PageResult() {
-		this.text = new ArrayList<String>();
+        this.text = new ArrayList<String>();
     }
 
     private PageResult(Parcel in) {
-	    this();
+        this();
         in.readList(this.text, null);
-	    this.page = in.readInt();
-	    this.document = in.readString();
+        this.page = in.readInt();
+        this.document = in.readString();
     }
 
     public PageResult(List<String> text, int page, String document) {
         this.text = text;
         this.page = page;
-	    this.document = document;
+        this.document = document;
     }
 
     public int describeContents() {
@@ -74,8 +71,8 @@ public class PageResult implements Parcelable {
 
     public void writeToParcel(Parcel out, int arg1) {
         out.writeList(text);
-	    out.writeInt(this.page);
-	    out.writeString(this.document);
+        out.writeInt(this.page);
+        out.writeString(this.document);
     }
 
 }

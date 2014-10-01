@@ -35,98 +35,47 @@ import ca.dracode.ais.indexdata.PageResult;
 import ca.dracode.ais.indexer.FileIndexer;
 import ca.dracode.ais.indexer.FileSearcher;
 
-/*
+/**
  * 	SearchService.java
  * 
  * 	Service accessed by the client library with functions to search through the index
- *
- * 	Make the indexer search from disk for multi-file searches and search from memory
- * 	for single file searches (load file into memory in load function).
  */
+
+// TODO - Make the indexer search from disk for multi-file searches and search from memory
+// for single file searches (create new index in RAMDirectory and add appropriate documents in
+// the load function).
 
 public class SearchService extends Service {
     private static final String TAG = "ca.dracode.ais.service.SearchService";
     private final BSearchService1_0.Stub mBinder = new BSearchService1_0.Stub() {
-	    public PageResult[] find(String doc, int type, String text, int numHits, int set, int page){
-		    return sm.find(text, doc, numHits, type, set, page);
-	    }
+        public PageResult[] find(String doc, int type, String text, int numHits, int set, int page) {
+            return sm.find(text, doc, numHits, type, set, page);
+        }
 
-	    /**
-	     * Used to search the contents of multiple files
-	     * @param 	docs - A list containing the names of the documents that should be searched. This allows metadata
-	     *				for multiple files to be in the search service's memory at once. An empty list will
-	     *              cause the search service to search all files on the device
-	     *              Directories can also be included for search of their contents
-	     * 	        type - allows the client to specify what type of results it wants to receive
-	     *      	text - the search term
-	     *      	numHits - the maximum number of results to return per file, a value of -1 means no limit
-	     * @return a list containing the terms found that matched the query and what page of the document they appear on.
-	     */
-	    public PageResult[] findIn(List<String> docs, int type, String text, int numHits, int set){
-		    return sm.findIn(text, docs, numHits, set, type);
-	    }
+        public PageResult[] findIn(List<String> docs, int type, String text, int numHits, int set) {
+            return sm.findIn(text, docs, numHits, set, type);
+        }
 
-	    /**
-	     *  Used to search for file names
-	     * @param   docs - the root directory for the search.
-	     *          type - allows the client to specify how to filter the files
-	     *          text - the search term
-	     *          numHits - the maximum number of results to return
-	     */
-	    public List<String> findName(List<String> docs, int type, String text, int numHits,
-                                     int set){
-			return sm.findName(text, docs, numHits, set, type);
-	    }
+        public List<String> findName(List<String> docs, int type, String text, int numHits,
+                                     int set) {
+            return sm.findName(text, docs, numHits, set, type);
+        }
 
-	    /**
-	     * used to send file contents to the indexing service. Because of the limitations of
-	     * the service communicsation system the information may have to be sent in chunks as
-	     * there can only be a maximum of about 1MB in the buffer at a time (which is shared
-	     * among all applications). The client class sends data in chunks that do not exceed 256KB,
-	     * currently pages cannot exceed 256KB as the data transfer will fail
-	     * @param 	filePath - the location of the file to be built; used by the indexer to identify the file
-	     *			text - the text to be added to the index
-	     *			page - the page upon which the chunk of the file that is being transferred starts.
-	     *					It is a double to allow the transfer of parts of a single page if the page is too large
-	     *			maxPage - the total number of pages in the entire file
-	     * @return 	0 if index was built successfully;
-	     * 			1 if the file lock was in place due to another build operation being in progress;
-	     *			2 if the Service is still waiting for the rest of the pages
-	     *			-1 on error
-	     */
-	    public int buildIndex(String filePath, List<String> text, double page, int maxPage){
-		    return SearchService.this.buildIndex(filePath, text, page, maxPage);
-	    }
+        public int buildIndex(String filePath, List<String> text, double page, int maxPage) {
+            return SearchService.this.buildIndex(filePath, text, page, maxPage);
+        }
 
-	    /**
-	     * Tells the indexer to load a file's metadata into memory for use in searches.
-	     * The function can be called multiple times to load several files. Files remain loaded until the unload
-	     * function is called. Please make sure to call unload when you are finished with the document.
-	     * @param filePath - the location of the file to prepare; is also the identifier for the file's data in the index
-	     * @return 0 if the file exists in the index and was not already loaded;
-	     *	 			1 if the file was already loaded;
-	     *			2 if the file was not loaded and does not exist in the index;
-	     *			-1 if there was an error
-	     */
-	    public int load(String filePath){
-		    return SearchService.this.load(filePath);
-	    }
+        public int load(String filePath) {
+            return SearchService.this.load(filePath);
+        }
 
-	    /**
-	     * Tells the indexer to unload a file's metadata from memory as it will not be used in future searches.
-	     * @param filePath - the location of the file; used to identify which file should be unloaded
-	     * @return true if the file exists in the index; false otherwise
-	     */
-	    public boolean unload(String filePath){
-		    return SearchService.this.unload(filePath);
-	    }
+        public boolean unload(String filePath) {
+            return SearchService.this.unload(filePath);
+        }
 
-	    /**
-	     *  Tells the search service to cancel any searches that are currently running
-	     */
-	    public boolean interrupt(){
-		    return sm.interrupt();
-	    }
+        public boolean interrupt() {
+            return sm.interrupt();
+        }
     };
     private SearchManager sm;
 
@@ -145,29 +94,46 @@ public class SearchService extends Service {
         this.data = new HashMap<String, SearchData>();
     }
 
+    /**
+     * used to send file contents to the indexing service. Because of the limitations of
+     * the service communicsation system the information may have to be sent in chunks as
+     * there can only be a maximum of about 1MB in the buffer at a time (which is shared
+     * among all applications). The client class sends data in chunks that do not exceed 256KB,
+     * currently pages cannot exceed 256KB as the data transfer will fail
+     * @param filePath - the location of the file to be built; used by the indexer to identify the file
+     * @param text - the text to be added to the index
+     * @param page - the page upon which the chunk of the file that is being transferred
+     *          starts.
+     *			It is a double to allow the transfer of parts of a single page if the page is too large
+     *			maxPage - the total number of pages in the entire file
+     * @return 0 if index was built successfully;
+     * 			1 if the file lock was in place due to another build operation being in progress;
+     *			2 if the Service is still waiting for the rest of the pages
+     *			-1 on error
+     */
     public int buildIndex(String filePath, List<String> text, double page,
                           int maxPage) {
         File indexDirFile = new File(FileIndexer.getRootStorageDir());
         File[] dirContents = indexDirFile.listFiles();
-        if (dirContents != null) {
-            for (File dirContent : dirContents) {
-                if (dirContent.getName().equals("write.lock")) {
+        if(dirContents != null) {
+            for(File dirContent : dirContents) {
+                if(dirContent.getName().equals("write.lock")) {
                     return 1;
                 }
             }
         }
         FileIndexer indexer = new FileIndexer();
         SearchData tmpData = this.data.get(filePath);
-        if (page == 0) {
+        if(page == 0) {
             tmpData.text.clear();
         }
-        if (page + text.size() != maxPage) {
+        if(page + text.size() != maxPage) {
             tmpData.text.addAll(text);
         } else {
             tmpData.text.addAll(text);
             try {
                 indexer.buildIndex(tmpData.text, new File(filePath));
-            } catch (Exception ex) {
+            } catch(Exception ex) {
                 Log.v("PDFIndex", "" + ex.getMessage());
                 ex.printStackTrace();
             } finally {
@@ -178,27 +144,37 @@ public class SearchService extends Service {
         return 2;
     }
 
+    /**
+     * Tells the indexer to load a file's metadata into memory for use in searches.
+     * The function can be called multiple times to load several files. Files remain loaded until the unload
+     * function is called. Please make sure to call unload when you are finished with the document.
+     * @param filePath - the location of the file to prepare; is also the identifier for the file's data in the index
+     * @return 0 if the file exists in the index and was not already loaded;
+     *	 			1 if the file was already loaded;
+     *			2 if the file was not loaded and does not exist in the index;
+     *			-1 if there was an error
+     */
     public int load(final String filePath) {
-        if (this.data.containsKey(filePath)) {
+        if(this.data.containsKey(filePath)) {
             return 1;
         }
         SearchData tmpData = new SearchData();
         Document tmp;
-        if (SearchService.this.sm.searcher == null) {
+        if(SearchService.this.sm.searcher == null) {
             Log.e(TAG, "Searcher is null");
             return -1;
         }
-        if ((tmp = this.sm.searcher.getMetaFile(filePath)) != null) {
+        if((tmp = this.sm.searcher.getMetaFile(filePath)) != null) {
             try {
                 IndexableField f = tmp.getField("pages");
-                if (f == null) {
+                if(f == null) {
                     Log.e(TAG,
                             "Cannot find pages in metafile: " + tmp.toString());
                     return -1;
                 } else {
                     tmpData.pages = f.numericValue().intValue();
                 }
-            } catch (Exception e) {
+            } catch(Exception e) {
                 Log.e(TAG, "Error", e);
                 return -1;
             }
@@ -210,6 +186,11 @@ public class SearchService extends Service {
 
     }
 
+    /**
+     * Tells the indexer to unload a file's metadata from memory as it will not be used in future searches.
+     * @param path - the location of the file; used to identify which file should be unloaded
+     * @return true if the file exists in the index; false otherwise
+     */
     public boolean unload(String path) {
         return this.data.remove(path) != null;
     }
@@ -217,33 +198,55 @@ public class SearchService extends Service {
     private class SearchManager {
         boolean found;
         boolean finishedLoading = false;
-	    private FileSearcher searcher;
+        private FileSearcher searcher;
 
         public SearchManager() {
-			this.searcher = new FileSearcher();
+            this.searcher = new FileSearcher();
         }
 
-	    private boolean interrupt(){
-		    return searcher.interrupt();
-	    }
+        /**
+         *  Tells the search service to cancel any searches that are currently running
+         */
+        private boolean interrupt() {
+            return searcher.interrupt();
+        }
 
-	    private List<String> findName(String term, List<String> directory, int numHits, int set,
-                                      int type){
-		    return this.searcher.findName(term, "path", directory, "path", numHits, set, type);
-	    }
+        /**
+         *  Used to search for file names
+         * @param   directory - A list containing directories to search
+         *          type - allows the client to specify how to filter the files
+         *          text - the search term
+         *          numHits - the maximum number of results to return
+         */
+        private List<String> findName(String term, List<String> directory, int numHits, int set,
+                                      int type) {
+            return this.searcher.findName(term, "path", directory, "path", numHits, set, type);
+        }
 
-	    private PageResult[] findIn(String term, List<String> documents, int numHits, int set,
-                                    int type){
-		    return this.searcher.findIn(term, "text", documents, "path", numHits, set, type);
-	    }
+        /**
+         * Used to search the contents of multiple files
+         * @param    documents - A list containing the names of the documents that should be
+         *                     searched. This allows metadata
+         *				for multiple files to be in the search service's memory at once. An empty list will
+         *              cause the search service to search all files on the device
+         *              Directories can also be included for search of their contents
+         * 	        type - allows the client to specify what type of results it wants to receive
+         *      	text - the search term
+         *      	numHits - the maximum number of results to return per file, a value of -1 means no limit
+         * @return a list containing the terms found that matched the query and what page of the document they appear on.
+         */
+        private PageResult[] findIn(String term, List<String> documents, int numHits, int set,
+                                    int type) {
+            return this.searcher.findInFiles(term, "text", documents, "path", numHits, set, type);
+        }
 
         private PageResult[] find(String term, String constrainValue, int maxResults, int set,
                                   int type, int page) {
             /**
              * TODO - Preload information about the index in the load function for use here
              * **/
-			Log.i(TAG, "Received request to search for: " + term);
-            return this.searcher.find(term, "text",
+            Log.i(TAG, "Received request to search for: " + term);
+            return this.searcher.findInFile(term, "text",
                     constrainValue, "path", maxResults, set, type, page);
         }
     }

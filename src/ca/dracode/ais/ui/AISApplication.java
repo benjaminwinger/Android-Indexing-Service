@@ -22,8 +22,6 @@ package ca.dracode.ais.ui;
 import android.app.Application;
 import android.util.Log;
 
-import org.apache.lucene.search.IndexSearcher;
-
 /*
  * AISApplication.java
  * 
@@ -36,7 +34,6 @@ import org.apache.lucene.search.IndexSearcher;
 public class AISApplication extends Application {
 
     private final static String TAG = "ca.dracode.ais.ais";
-	protected IndexSearcher indexSearcher; // TODO - Use this as a global searcher for whenever the aplication is running (is this necessary?)
 
     public void onCreate() {
         super.onCreate();

@@ -45,6 +45,11 @@ public class ParserService implements Serializable {
         return name;
     }
 
+    /**
+     * Checks to see if this ParserService can handle the given extension
+     * @param ext The extension that needs to be parsed
+     * @return true if the ParserService can handle the given extension; false otherwise
+     */
     public boolean checkExtension(String ext) {
         return this.extensions.contains(ext);
     }
