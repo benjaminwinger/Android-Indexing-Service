@@ -4,7 +4,7 @@ Android Indexing Service
 
 (C) 2014 Dracode Software
 
-Version: 0.5.1
+Version: 0.5.2
 
 Authors: Benjamin Winger
 
@@ -12,7 +12,7 @@ An android application that exposes a service to allow other applications to sea
 It also serves as a centralised index so that the database is shared between applications and reduces redundancy from having many applications indexing individually.
 
 ## Compiling ##
-Android Indexing Service is built using the Apache Maven build tool. Simply download the source and execute from the root of the source directory
+Android Indexing Service is built using the Apache Maven build tool. Simply download the source and execute from the root of the source directory:
 
 ```
 mvn clean install
