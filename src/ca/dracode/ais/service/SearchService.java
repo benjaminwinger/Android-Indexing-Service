@@ -29,6 +29,7 @@ import org.apache.lucene.index.IndexableField;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import ca.dracode.ais.indexdata.PageResult;
@@ -37,7 +38,7 @@ import ca.dracode.ais.indexer.FileSearcher;
 
 /**
  * 	SearchService.java
- * 
+ *
  * 	Service accessed by the client library with functions to search through the index
  */
 
@@ -48,17 +49,18 @@ import ca.dracode.ais.indexer.FileSearcher;
 public class SearchService extends Service {
     private static final String TAG = "ca.dracode.ais.service.SearchService";
     private final BSearchService1_0.Stub mBinder = new BSearchService1_0.Stub() {
-        public PageResult[] find(String doc, int type, String text, int numHits, int set, int page) {
-            return sm.find(text, doc, numHits, type, set, page);
+        public PageResult[] find(int id, String doc, int type, String text, int numHits, int set,
+                                 int page) {
+            return sm.find(id, text, doc, numHits, type, set, page);
         }
 
         public PageResult[] findIn(List<String> docs, int type, String text, int numHits, int set) {
-            return sm.findIn(text, docs, numHits, set, type);
+            return sm.findIn(id, text, docs, numHits, set, type);
         }
 
         public List<String> findName(List<String> docs, int type, String text, int numHits,
                                      int set) {
-            return sm.findName(text, docs, numHits, set, type);
+            return sm.findName(id, text, docs, numHits, set, type);
         }
 
         public int buildIndex(String filePath, List<String> text, double page, int maxPage) {
@@ -207,8 +209,8 @@ public class SearchService extends Service {
         /**
          *  Tells the search service to cancel any searches that are currently running
          */
-        private boolean interrupt() {
-            return searcher.interrupt();
+        private boolean interrupt(int id) {
+            return searcher.interrupt(id);
         }
 
         /**
@@ -218,35 +220,44 @@ public class SearchService extends Service {
          *          text - the search term
          *          numHits - the maximum number of results to return
          */
-        private List<String> findName(String term, List<String> directory, int numHits, int set,
+        private List<String> findName(int id, String term, List<String> directory, int numHits,
+                                      int set,
                                       int type) {
-            return this.searcher.findName(term, "path", directory, "path", numHits, set, type);
+            return this.searcher.findName(id, term, "path", directory, "path", numHits, set, type);
         }
 
         /**
          * Used to search the contents of multiple files
          * @param    documents - A list containing the names of the documents that should be
-         *                     searched. This allows metadata
-         *				for multiple files to be in the search service's memory at once. An empty list will
-         *              cause the search service to search all files on the device
-         *              Directories can also be included for search of their contents
-         * 	        type - allows the client to specify what type of results it wants to receive
-         *      	text - the search term
-         *      	numHits - the maximum number of results to return per file, a value of -1 means no limit
-         * @return a list containing the terms found that matched the query and what page of the document they appear on.
+         * searched. This allows metadata
+         * for multiple files to be in the search service's memory at once. An empty list will
+         * cause the search service to search all files on the device
+         * Directories can also be included for search of their contents
+         * @param type - allows the client to specify what type of results it wants to receive
+         * @param term - the search term
+         * @param numHits - the maximum number of results to return per file,
+         * a value of -1 means no limit
+         * @return a list containing the terms found that matched the query and what page of the
+         * document they appear on.
          */
-        private PageResult[] findIn(String term, List<String> documents, int numHits, int set,
-                                    int type) {
-            return this.searcher.findInFiles(term, "text", documents, "path", numHits, set, type);
+        private LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> findIn(int id, String
+                                                                                   term,
+                                                                                   List<String>
+                                                                                           documents, int numHits, int set,
+                                                                                   int type) {
+            return this.searcher.findInFiles(id, term, "text", documents, "path", numHits, set,
+                    type);
         }
 
-        private PageResult[] find(String term, String constrainValue, int maxResults, int set,
-                                  int type, int page) {
+        private LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> find(int id,
+                                                                                 String term,
+                                                                                 String constrainValue, int maxResults, int set,
+                                                                                 int type, int page) {
             /**
              * TODO - Preload information about the index in the load function for use here
              * **/
             Log.i(TAG, "Received request to search for: " + term);
-            return this.searcher.findInFile(term, "text",
+            return this.searcher.findInFile(id, term, "text",
                     constrainValue, "path", maxResults, set, type, page);
         }
     }

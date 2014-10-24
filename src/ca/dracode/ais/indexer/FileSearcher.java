@@ -1,21 +1,21 @@
-/*******************************************************************************
- * Copyright 2014 Benjamin Winger.
+/*
+ * Copyright 2014 Dracode Software.
  *
- * This file is part of Android Indexing Service.
+ * This file is part of AIS.
  *
- * Android Indexing Service is free software: you can redistribute it and/or modify
+ * AIS is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Android Indexing Service is distributed in the hope that it will be useful,
+ * AIS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
+ * along with AIS.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package ca.dracode.ais.indexer;
 
@@ -23,7 +23,6 @@ import android.util.Log;
 
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -31,13 +30,9 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.FieldCache;
-import org.apache.lucene.search.FieldCache.IntParser;
-import org.apache.lucene.search.FieldComparator;
-import org.apache.lucene.search.FieldComparator.NumericComparator;
-import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryWrapperFilter;
 import org.apache.lucene.search.ScoreDoc;
@@ -56,9 +51,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
-
-import ca.dracode.ais.indexdata.PageResult;
 
 /**
  * FileSearcher.java
@@ -72,13 +66,22 @@ public class FileSearcher {
     //          which can make them take a long time to finish for common terms. They will be faster when the
     //          number of results is actually restricted but boolean searches should be recommended where speed is
     //          important
+    /**
+     * Searches for results purely based on whether or not the term occurs in the result.
+     * Individual pages will be ordered by page number. If multiple files are searched at once,
+     * the files will be ordered alphabetically.
+     */
     public static final int QUERY_BOOLEAN = 0;
+    /**
+     * Searches for results based on their relevance to the search term.
+     * All results will be ordered by relevance.
+     */
     public static final int QUERY_STANDARD = 1;
 
 
     private final String TAG = "ca.dracode.ais.androidindexer.FileSearcher";
     private IndexSearcher indexSearcher;
-    private boolean interrupt = false;
+    private int interrupt = -1;
 
     public FileSearcher() {
         IndexReader indexReader;
@@ -150,32 +153,38 @@ public class FileSearcher {
      *     will return files with a path related to "Foo" only from the directories or
      *     subdirectories or "/Bar" and "/Stool"
      * </p>
+     * @param id Identifier for the instance of ClientService that spawned the search
      * @param term The search term for choosing and ranking results
      * @param field The field to search, i.e. "path"
      * @param constrainValues The paths to which to constrain the search
      * @param constrainField The field used to constrain searches
      * @param maxResults The maximum number of results that will be returned
      * @param set The set number, e.g., searching set 0 returns the first n results,
-     *            searching set 1 returns the 2nd n results
+     *            searching set 1 returns the 2nd n results. Set must be positive.
      * @param type The type of the search, one of QUERY_BOOLEAN or QUERY_STANDARD
      * @return A list containing all of the paths the searcher found, sorted by relevance
      */
-    public List<String> findName(String term, String field, List<String> constrainValues,
-                                 String constrainField, int maxResults, int set, int type) {
+    public ArrayList<String> findName(int id, String term, String field,
+                                      List<String> constrainValues,
+                                      String constrainField, int maxResults, int set, int type) {
+        if(this.interrupt == id) {
+            this.interrupt = -1;
+            return null;
+        }
         Query qry = this.getQuery(term, field, type);
         if(qry != null){
-            Filter filter = this.getFilter(constrainField, constrainValues);
+            Filter filter = this.getFilter(constrainField, constrainValues, type, -1, -1);
             ScoreDoc[] hits = null;
             try {
                 hits = indexSearcher.search(qry, filter, maxResults + maxResults * set).scoreDocs;
             } catch(IOException e) {
                 Log.e(TAG, "Error ", e);
             }
-            if(this.interrupt) {
-                this.interrupt = true;
+            if(this.interrupt == id) {
+                this.interrupt = -1;
                 return null;
             }
-            List<String> docs = this.getDocPaths(maxResults, set, hits);
+            ArrayList<String> docs = this.getDocPaths(maxResults, set, hits);
             Log.i(TAG, "Found instance of term in " + docs.size() + " documents");
             return docs;
         } else {
@@ -191,30 +200,45 @@ public class FileSearcher {
      *     will return pages with contents related to "Foo" only from the directories or
      *     subdirectories or "/Bar" and "/Stool"
      * </p>
+     * @param id Identifier for the instance of ClientService that spawned the search
      * @param term The search term for choosing and ranking results
      * @param field The field to search, i.e. "contents"
      * @param constrainValues The paths to which to constrain the search
      * @param constrainField The field used to constrain searches
      * @param maxResults The maximum number of results that will be returned
      * @param set The set number, e.g., searching set 0 returns the first n results,
-     *            searching set 1 returns the 2nd n results
+     *            searching set 1 returns the 2nd n results. Set must be positive
      * @param type The type of the search, one of QUERY_BOOLEAN or QUERY_STANDARD
-     * @return A list of PageResult containing all of the results the searcher found,
-     * sorted by relevance
+     * @return A LinkedHashMap containing the files in which the term occurs,
+     * paired to a LinkedHashMap containing an (Integer page, String text) pair for each occurrence
+     * of the term, sorted by relevance
      */
-    public PageResult[] findInFiles(String term, String field, List<String> constrainValues,
-                               String constrainField, int maxResults, int set, int type) {
+    public LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> findInFiles(int id, String term, String field, List<String> constrainValues,
+                                                                                   String constrainField, int maxResults, int set, int type) {
+        if(this.interrupt == id) {
+            this.interrupt = -1;
+            return null;
+        }
         Query qry = this.getQuery(term, field, type);
         if(qry != null){
-            Filter filter = this.getFilter(constrainField, constrainValues);
+            Filter filter = this.getFilter(constrainField, constrainValues, type, -1, -1);
             ScoreDoc[] hits = null;
             try {
-                hits = indexSearcher.search(qry, filter, maxResults * set + maxResults).scoreDocs;
+                if(type == QUERY_BOOLEAN){
+                    Sort sort = new Sort(new SortField("path", SortField.Type.STRING),
+                            new SortField("page", SortField.Type.INT));
+                    hits = indexSearcher.search(qry, filter, maxResults *
+                            set + maxResults, sort).scoreDocs;
+                } else {
+                    hits = indexSearcher.search(qry, filter, maxResults *
+                            set + maxResults).scoreDocs;
+                }
+
             } catch(IOException e) {
                 Log.e(TAG, "Error ", e);
             }
-            if(this.interrupt) {
-                this.interrupt = true;
+            if(this.interrupt == id) {
+                this.interrupt = -1;
                 return null;
             }
             List<Document> docs = this.getDocs(maxResults, set, hits);
@@ -222,54 +246,110 @@ public class FileSearcher {
             return this.getHighlightedResults(docs, qry, type, term, maxResults);
         } else {
             Log.e(TAG, "Query Type: " + type + " not recognised");
-            return new PageResult[0];
+            return null;
         }
     }
 
     /**
-     * Searches for matches in the contents of multiple files
+     * Searches for matches in the contents of a single file
      * <p>
      *     For example, a search with the term "Foo" and the constrainValue "/Bar.txt"
      *     will return pages with contents related to "Foo" only from inside the file "/Bar.txt"
      * </p>
+     * @param id Identifier for the instance of ClientService that spawned the search
      * @param term The search term for choosing and ranking results
      * @param field The field to search, i.e. "contents"
      * @param constrainValue The path to which to constrain the search
      * @param constrainField The field used to constrain searches
      * @param maxResults The maximum number of results that will be returned
      * @param set The set number, e.g., searching set 0 returns the first n results,
-     *            searching set 1 returns the 2nd n results
+     *            searching set 1 returns the 2nd n results. A negative set can be used to search
+     *            backwards from a page.
      * @param type The type of the search, one of QUERY_BOOLEAN or QUERY_STANDARD
-     * @return A list of PageResult containing all of the results the searcher found,
-     * sorted by relevance
+     * @return A LinkedHashMap containing the files in which the term occurs,
+     * paired to a LinkedHashMap containing an (Integer page, String text) pair for each occurrence
+     * of the term, sorted by relevance
      */
-    public PageResult[] findInFile(String term, String field, String constrainValue,
-                             String constrainField, int maxResults, int set, int type,
-                             final int page) {
+    public LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> findInFile(int id, String term, String field, String constrainValue,
+                                                                                  String constrainField, int maxResults, int set, int type,
+                                                                                  final int page) {
+        if(this.interrupt == id) {
+            this.interrupt = -1;
+            return null;
+        }
         Query qry = this.getQuery(term, field, type);
         if(qry != null){
             String[] values = {constrainValue};
-            Filter filter = this.getFilter(constrainField, Arrays.asList(values));
+            Filter filter;
             ScoreDoc[] hits = null;
             try {
                 Log.i(TAG, "Searching...");
-                hits = indexSearcher.search(qry, filter, maxResults * set + maxResults,
-                        this.getPagedSort(page)).scoreDocs;
+                Sort sort;
+                if(type == QUERY_STANDARD){
+                    sort = new Sort();
+                    filter = this.getFilter(constrainField, Arrays.asList(values), type, page,
+                            Integer.MAX_VALUE);
+                    hits = indexSearcher.search(qry, filter, maxResults * set + maxResults,
+                            sort).scoreDocs;
+                } else {
+                    if(set >= 0) {
+                        sort = new Sort(new SortField("page", SortField.Type.INT));
+                        filter = this.getFilter(constrainField, Arrays.asList(values), type, page,
+                                Integer.MAX_VALUE);
+                        hits = indexSearcher.search(qry, filter, maxResults * set + maxResults,
+                                sort).scoreDocs;
+                        if(hits.length < maxResults) {
+                            filter = this.getFilter(constrainField, Arrays.asList(values), type, 0,
+                                    page - 1);
+                            hits = concat(hits, indexSearcher.search(qry, filter,
+                                    maxResults * set + maxResults -hits.length,
+                                    new Sort(new SortField("page", SortField.Type.INT))).scoreDocs);
+                        }
+                    } else {
+                        sort = new Sort(new SortField("page", SortField.Type.INT, true));
+                        filter = this.getFilter(constrainField, Arrays.asList(values), type, 0,
+                                page - 1);
+                        hits = indexSearcher.search(qry, filter, Integer.MAX_VALUE,
+                                sort).scoreDocs;
+                        if(hits.length < maxResults){
+                            filter = this.getFilter(constrainField, Arrays.asList(values), type, page,
+                                    Integer.MAX_VALUE);
+                            hits = concat(hits, indexSearcher.search(qry, filter,
+                                    maxResults * -(set + 1) + maxResults - hits.length,
+                                    sort).scoreDocs);
+                        } else {
+                            ScoreDoc[] tmp = hits;
+                            hits = new ScoreDoc[maxResults * -(set + 1) + maxResults];
+                            System.arraycopy(tmp, 0, hits, 0, maxResults * -(set + 1) + maxResults);
+                        }
+                    }
+                }
             } catch(IOException e) {
                 Log.e(TAG, "Error ", e);
             }
-            if(this.interrupt) {
-                this.interrupt = true;
+            if(this.interrupt == id) {
+                this.interrupt = -1;
                 return null;
             }
-
-            Log.i(TAG, "Found instance of term in " + hits.length + " documents");
-            return this.getHighlightedResults(this.getDocs(maxResults, set, hits), qry, type,
-                    term, maxResults);
+            if(hits != null) {
+                Log.i(TAG, "Found instance of term in " + hits.length + " documents");
+                return this.getHighlightedResults(this.getDocs(maxResults, set, hits), qry, type,
+                        term, maxResults);
+            }
         } else {
             Log.e(TAG, "Query Type: " + type + " not recognised");
-            return new PageResult[0];
+            return null;
         }
+        return null;
+    }
+
+    ScoreDoc[] concat(ScoreDoc[] A, ScoreDoc[] B) {
+        int aLen = A.length;
+        int bLen = B.length;
+        ScoreDoc[] C= new ScoreDoc[aLen+bLen];
+        System.arraycopy(A, 0, C, 0, aLen);
+        System.arraycopy(B, 0, C, aLen, bLen);
+        return C;
     }
 
     /**
@@ -281,13 +361,8 @@ public class FileSearcher {
      * WildcardQuery for the term or a Query built from a QueryParser and SimpleAnalyzer
      */
     private Query getQuery(String term, String field, int type) {
-        if(this.interrupt) {
-            this.interrupt = false;
-            return null;
-        }
         Query qry = null;
         if(type == FileSearcher.QUERY_BOOLEAN) {
-            String[] terms = term.split(" ");
             qry = new BooleanQuery();
             ((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + term + "*")),
                     BooleanClause.Occur.MUST);
@@ -299,24 +374,26 @@ public class FileSearcher {
                 e.printStackTrace();
             }
         }
-        if(this.interrupt) {
-            this.interrupt = false;
-            return null;
-        }
         return qry;
     }
 
     /**
-     * Creates a directory filter
+     * Creates a directory filter; also filters a range of pages
      * @param constrainField The field that contains the directory info
      * @param constrainValues The directories to which the filters shold limit
      * @return The created filter
      */
-    private Filter getFilter(String constrainField, List<String> constrainValues){
+    private Filter getFilter(String constrainField, List<String> constrainValues,
+                             int type, int startPage,
+                             int endPage){
         BooleanQuery cqry = new BooleanQuery();
         for(String s : constrainValues) {
             cqry.add(new TermQuery(new Term(constrainField, s)),
                     BooleanClause.Occur.SHOULD);
+        }
+        if(type == FileSearcher.QUERY_BOOLEAN && startPage != -1 && endPage != -1) {
+            cqry.add(NumericRangeQuery.newIntRange("page", startPage, endPage, true, true),
+                    BooleanClause.Occur.MUST);
         }
         return new QueryWrapperFilter(cqry);
     }
@@ -330,21 +407,25 @@ public class FileSearcher {
      *             which gives highlighted fragments and the page on which they exist.
      * @param term The term that created the query
      * @param maxResults The maximum number of results that will be returned
-     * @return An array containing a PageResult entry for each result
+     * @return * @return A LinkedHashMap containing the files in which the term occurs,
+     * paired to a LinkedHashMap containing an (Integer page, String text) pair for each occurrence
+     * of the term, sorted by relevance
      */
-    private PageResult[] getHighlightedResults(List<Document> docs, Query qry, int type,
-                                               String term, int maxResults){
+    private LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> getHighlightedResults(List<Document> docs, Query qry, int type,
+                                                                                              String term, int maxResults){
         try {
             int numResults = 0;
-            PageResult[] results = new PageResult[docs.size()];
+            LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> results = new LinkedHashMap<String, LinkedHashMap<Integer, List<String>>>();
             for(int i = 0; i < docs.size() && numResults < maxResults; i++) {
-                if(this.interrupt) {
-                    this.interrupt = false;
-                    return null;
-                }
                 Document d = docs.get(i);
                 int docPage = Integer.parseInt(d.get("page"));
                 String name = d.get("path");
+                LinkedHashMap<Integer, List<String>> docResult = results.get(name);
+                if(docResult == null){
+                    docResult = new LinkedHashMap<Integer,
+                            List<String>>();
+                    results.put(name, docResult);
+                }
                 if(type != FileSearcher.QUERY_BOOLEAN) {
                     String contents = d.get("text");
                     Highlighter highlighter = new Highlighter(new QueryScorer(qry));
@@ -358,24 +439,21 @@ public class FileSearcher {
                     } catch(InvalidTokenOffsetsException e) {
                         Log.e(TAG, "Error while highlighting", e);
                     }
-                    Log.i(TAG, "Frags: " + frag.length + " " + frag + " " + frag[0]);
+                    if(frag != null) {
+                        Log.i(TAG, "Frags: " + frag.length + " " + frag + " " + frag[0]);
+                    }
                     ArrayList<String> tmpList = new ArrayList<String>(Arrays
                             .asList(frag != null ? frag : new String[0]));
                     Log.i(TAG, "list " + tmpList.getClass().getName());
-                    results[i] = (new PageResult(tmpList, docPage, name));
-                    Log.i(TAG, "" + results[i]);
+                    docResult.put(docPage, tmpList);
                 } else {
                     ArrayList<String> tmp = new ArrayList<String>();
                     tmp.add(term);
-                    results[i] = (new PageResult(tmp, docPage, name));
+                    docResult.put(docPage, tmp);
                 }
 
             }
-            Log.i(TAG, "" + results.length);
-            if(this.interrupt) {
-                this.interrupt = false;
-                return null;
-            }
+            Log.i(TAG, "" + results.size());
             return results;
         } catch(Exception e) {
             Log.e("TAG", "Error while Highlighting", e);
@@ -391,15 +469,29 @@ public class FileSearcher {
      * @param hits The ScoreDoc to be parsed
      * @return The list of documents that is maxResults long and skips set*maxResults results
      */
-    private List<Document> getDocs(int maxResults, int set, ScoreDoc[] hits){
+    private ArrayList<Document> getDocs(int maxResults, int set, ScoreDoc[] hits){
         ArrayList<Document> docs = new ArrayList<Document>();
-        for(int i = maxResults * set; i < hits.length && i < (maxResults * set + maxResults);
-            i++) {
-            try {
-                Document tmp = indexSearcher.doc(hits[i].doc);
-                docs.add(tmp);
-            } catch(IOException e) {
-                Log.e(TAG, "Error ", e);
+        if(set > 0) {
+            for(int i = maxResults * set; i < hits.length && i < (maxResults * set +
+                    maxResults);
+                i++) {
+                try {
+                    Document tmp = indexSearcher.doc(hits[i].doc);
+                    docs.add(tmp);
+                } catch(IOException e) {
+                    Log.e(TAG, "Error ", e);
+                }
+            }
+        } else {
+            for(int i = 0; i < hits.length && i < (maxResults * -(set + 1) +
+                    maxResults);
+                i++) {
+                try {
+                    Document tmp = indexSearcher.doc(hits[i].doc);
+                    docs.add(tmp);
+                } catch(IOException e) {
+                    Log.e(TAG, "Error ", e);
+                }
             }
         }
         return docs;
@@ -413,7 +505,7 @@ public class FileSearcher {
      * @param hits The ScoreDoc to be parsed
      * @return The list of paths that is maxResults long and skips set*maxResults results
      */
-    private List<String> getDocPaths(int maxResults, int set, ScoreDoc[] hits){
+    private ArrayList<String> getDocPaths(int maxResults, int set, ScoreDoc[] hits){
         ArrayList<String> docs = new ArrayList<String>();
         for(int i = maxResults * set; i < hits.length && i < maxResults * set + maxResults; i++) {
             try{
@@ -430,141 +522,11 @@ public class FileSearcher {
      * Calls for the any current searches to be inturrupted
      * @return false if the interrupt flag was already set; otherwise true
      */
-    public boolean interrupt() {
+    public boolean interrupt(int id) {
         // TODO - Must become path dependent so that interrupt calls do not interrupt searches
         // from other applications
-        boolean tmp = this.interrupt;
-        this.interrupt = true;
-        return !tmp;
-    }
-
-    /**
-     * Creates a sort that splits results around a given page
-     * @param page The page that will show first in the results,
-     * @return A Sort object that splits results around the given page
-     */
-    private Sort getPagedSort(final int page){
-        return new Sort(new SortField("page", new FieldComparatorSource() {
-            @Override
-            public FieldComparator<?> newComparator(String fieldname, int numhits,
-                                                    int sortpos,
-                                                    boolean reversed) throws
-                    IOException {
-                return new PagedIntComparator(numhits, fieldname, null,
-                        null) {
-                    public int compare(int slot1, int slot2) {
-                        final int v1 = this.values[slot1];
-                        final int v2 = this.values[slot2];
-                        if(v1 < page && v2 >= page) {
-                            return 1;
-                        } else if(v1 >= page && v2 < page) {
-                            return -1;
-                        } else {
-                            if(v1 > v2) {
-                                return 1;
-                            } else if(v1 < v2) {
-                                return -1;
-                            } else {
-                                return 0;
-                            }
-                        }
-                    }
-
-                    @Override
-                    public int compareBottom(int doc) {
-                        int v2 = this.currentReaderValues.get(doc);
-                        if(docsWithField != null && v2 == 0 && !docsWithField.get(doc)) {
-                            v2 = missingValue;
-                        }
-                        if(v2 < page) {
-                            return -1;
-                        }
-                        if(this.bottom > v2) {
-                            return 1;
-                        } else if(this.bottom < v2) {
-                            return -1;
-                        } else {
-                            return 0;
-                        }
-                    }
-
-                    @Override
-                    public int compareTop(int doc) {
-                        int docValue = this.currentReaderValues.get(doc);
-                        if(docsWithField != null && docValue == 0 && !docsWithField.get(doc)) {
-                            docValue = missingValue;
-                        }
-                        if(this.topValue < page && docValue > page) {
-                            return 1;
-                        }
-                        if(this.topValue < docValue) {
-                            return -1;
-                        } else if(this.topValue > docValue) {
-                            return 1;
-                        } else {
-                            return 0;
-                        }
-                    }
-                };
-            }
-        }));
-    }
-
-    /**
-     * Adapted from Lucene 4.7 IntComparator
-     * <p>
-     *      Identical but intended for sorting pages of a document starting at a certain page.
-     *      Previous pages are added to the end of the list
-     * </p>
-     * @since v0.4
-     */
-    public abstract class PagedIntComparator extends NumericComparator<Integer> {
-        protected final int[] values;
-        private final IntParser parser;
-        protected FieldCache.Ints currentReaderValues;
-        protected int bottom;                           // Value of bottom of queue
-        protected int topValue;
-
-        PagedIntComparator(int numHits, String field, FieldCache.Parser parser,
-                           Integer missingValue) {
-            super(field, missingValue);
-            values = new int[numHits];
-            this.parser = (IntParser) parser;
-        }
-
-        @Override
-        public void copy(int slot, int doc) {
-            int v2 = currentReaderValues.get(doc);
-            // Test for v2 == 0 to save Bits.get method call for
-            // the common case (doc has value and value is non-zero):
-            if(docsWithField != null && v2 == 0 && !docsWithField.get(doc)) {
-                v2 = missingValue;
-            }
-
-            values[slot] = v2;
-        }
-
-        @Override
-        public FieldComparator<Integer> setNextReader(AtomicReaderContext context) throws IOException {
-            // NOTE: must do this before calling super otherwise
-            // we compute the docsWithField Bits twice!
-            currentReaderValues = FieldCache.DEFAULT.getInts(context.reader(), field, parser, missingValue != null);
-            return super.setNextReader(context);
-        }
-
-        @Override
-        public void setBottom(final int bottom) {
-            this.bottom = values[bottom];
-        }
-
-        @Override
-        public void setTopValue(Integer value) {
-            topValue = value;
-        }
-
-        @Override
-        public Integer value(int slot) {
-            return Integer.valueOf(values[slot]);
-        }
+        int tmp = this.interrupt;
+        this.interrupt = id;
+        return !(tmp == id);
     }
 }
