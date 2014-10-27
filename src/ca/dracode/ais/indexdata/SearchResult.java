@@ -22,7 +22,7 @@ package ca.dracode.ais.indexdata;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 /*
@@ -33,36 +33,32 @@ import java.util.List;
  * It will be encapsulated in an ArrayList 
  */
 
-public class PageResult implements Parcelable {
-    public static final Parcelable.Creator<PageResult> CREATOR = new Parcelable.Creator<PageResult>() {
-        public PageResult createFromParcel(Parcel in) {
-            return new PageResult(in);
+public class SearchResult implements Parcelable {
+    public static final Parcelable.Creator<javax.naming.directory.SearchResult> CREATOR = new Parcelable
+            .Creator<javax.naming.directory.SearchResult>() {
+        public javax.naming.directory.SearchResult createFromParcel(Parcel in) {
+            return new javax.naming.directory.SearchResult(in);
         }
 
-        public PageResult[] newArray(int size) {
-            return new PageResult[size];
+        public javax.naming.directory.SearchResult[] newArray(int size) {
+            return new javax.naming.directory.SearchResult[size];
         }
     };
     private static final long serialVersionUID = -2204743540787327738L;
-    public List<String> text;
-    public int page;
-    public String document;
+    LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> results;
 
-    public PageResult() {
-        this.text = new ArrayList<String>();
+    public SearchResult() {
+        this.results = new LinkedHashMap<String, LinkedHashMap<Integer, List<String>>>();
     }
 
-    private PageResult(Parcel in) {
+    private SearchResult(Parcel in) {
         this();
-        in.readList(this.text, null);
-        this.page = in.readInt();
-        this.document = in.readString();
+        this.results = (LinkedHashMap<String, LinkedHashMap<Integer,
+                List<String>>>)in.readSerializable();
     }
 
-    public PageResult(List<String> text, int page, String document) {
-        this.text = text;
-        this.page = page;
-        this.document = document;
+    public SearchResult(LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> results) {
+        this.results = results;
     }
 
     public int describeContents() {
@@ -70,9 +66,7 @@ public class PageResult implements Parcelable {
     }
 
     public void writeToParcel(Parcel out, int arg1) {
-        out.writeList(text);
-        out.writeInt(this.page);
-        out.writeString(this.document);
+        out.writeSerializable(results);
     }
 
 }
