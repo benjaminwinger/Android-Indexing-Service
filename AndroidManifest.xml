@@ -1,31 +1,35 @@
-<?xml version="1.0" encoding="utf-8"?><!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  ~ Copyright 2014 Benjamin Winger.
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2014 Dracode Software.
   ~
-  ~ This file is part of Android Indexing Service.
+  ~ This file is part of AIS.
   ~
-  ~ Android Indexing Service is free software: you can redistribute it and/or modify
+  ~ AIS is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
   ~ the Free Software Foundation, either version 3 of the License, or
   ~ (at your option) any later version.
   ~
-  ~ Android Indexing Service is distributed in the hope that it will be useful,
+  ~ AIS is distributed in the hope that it will be useful,
   ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
   ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   ~ GNU General Public License for more details.
   ~
   ~ You should have received a copy of the GNU General Public License
-  ~ along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
-  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+  ~ along with AIS.  If not, see <http://www.gnu.org/licenses/>.
+  -->
 
 <manifest
     package="ca.dracode.ais"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:versionCode="1"
-    android:versionName="0.1">
+    android:versionName="0.6.0">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
+    <permission android:name="ca.dracode.permission.AIS_SEARCH"
+        android:label="@string/ais_permission_title"
+        android:description="@string/ais_permission_desc"
+   	    android:protectionLevel="normal" />
     <uses-sdk
         android:minSdkVersion="7"
         android:targetSdkVersion="19" />
@@ -48,7 +52,8 @@
 
         <activity
             android:name="ca.dracode.ais.ui.AISPreferences"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -60,24 +65,37 @@
             android:exported="false"
             android:process=":index"/>
         <service
+            android:name="ca.dracode.ais.service.InfoProxy"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":index">
+            <intent-filter>
+                <action android:name="ca.drackde.ais.service.InfoService.PROXY"/>
+            </intent-filter>
+        </service>
+        <service
             android:name="ca.dracode.ais.service.SearchService"
             android:exported="true"
             android:label="@string/app_name"
             android:process=":search"
-            android:permission="android.permission.AIS_SEARCH">
+            android:permission="ca.dracode.permission.AIS_SEARCH">
             <intent-filter>
-                <action android:name="ca.drackde.ais.service.IndexService.SEARCH"></action>
+                <action android:name="ca.drackde.ais.service.IndexService.SEARCH"/>
+                <action android:name="ca.dracode.ais.service.IndexService.SEARCH"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </service>
-        <service android:name="ca.dracode.ais.service.FileListener"
-                 android:label="@string/app_name"
-                 android:process=":index">
-            </service>
+        <service
+            android:name="ca.dracode.ais.service.FileListener"
+            android:label="@string/app_name"
+            android:process=":index"
+            android:exported="false">
+        </service>
         <service android:name=".service.InfoProxy"/>
 
         <receiver android:name="ca.dracode.ais.alarm.AutoStart">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"></action>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
         <receiver android:name="ca.dracode.ais.alarm.Alarm"/>

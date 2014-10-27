@@ -1,21 +1,21 @@
-/*******************************************************************************
- * Copyright 2014 Benjamin Winger.
+/*
+ * Copyright 2014 Dracode Software.
  *
- * This file is part of Android Indexing Service.
+ * This file is part of AIS.
  *
- * Android Indexing Service is free software: you can redistribute it and/or modify
+ * AIS is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Android Indexing Service is distributed in the hope that it will be useful,
+ * AIS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
+ * along with AIS.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package ca.dracode.ais.service;
 
@@ -283,15 +283,15 @@ public class IndexService extends Service {
         String serviceName = null;
         if(content.isFile()) {
             int size = services.size();
-            for(int j = 0; j < size; j++) {
+            for(ParserService service : services) {
                 int mLoc = content.getName().lastIndexOf(".") + 1;
                 if(mLoc != 0) {
-                    boolean found = services.get(j).checkExtension(
+                    boolean found = service.checkExtension(
                             content.getName().substring(mLoc)
                                     .toLowerCase()
                     );
                     if(found) {
-                        serviceName = services.get(j).getName();
+                        serviceName = service.getName();
                     }
                 }
             }

@@ -1,21 +1,21 @@
-/*******************************************************************************
- * Copyright 2014 Benjamin Winger.
+/*
+ * Copyright 2014 Dracode Software.
  *
- * This file is part of Android Indexing Service.
+ * This file is part of AIS.
  *
- * Android Indexing Service is free software: you can redistribute it and/or modify
+ * AIS is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Android Indexing Service is distributed in the hope that it will be useful,
+ * AIS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
+ * along with AIS.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package ca.dracode.ais.service;
 
@@ -29,10 +29,9 @@ import org.apache.lucene.index.IndexableField;
 
 import java.io.File;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 
-import ca.dracode.ais.indexdata.PageResult;
+import ca.dracode.ais.indexdata.SearchResult;
 import ca.dracode.ais.indexer.FileIndexer;
 import ca.dracode.ais.indexer.FileSearcher;
 
@@ -48,23 +47,26 @@ import ca.dracode.ais.indexer.FileSearcher;
 
 public class SearchService extends Service {
     private static final String TAG = "ca.dracode.ais.service.SearchService";
+    int currentId = 0;
     private final BSearchService1_0.Stub mBinder = new BSearchService1_0.Stub() {
-        public PageResult[] find(int id, String doc, int type, String text, int numHits, int set,
+        public SearchResult find(int id, String doc, int type, String text, int numHits, int set,
                                  int page) {
             return sm.find(id, text, doc, numHits, type, set, page);
         }
 
-        public PageResult[] findIn(List<String> docs, int type, String text, int numHits, int set) {
+        public SearchResult findIn(int id, List<String> docs, int type, String text, int numHits,
+                                   int set) {
             return sm.findIn(id, text, docs, numHits, set, type);
         }
 
-        public List<String> findName(List<String> docs, int type, String text, int numHits,
+        public List<String> findName(int id, List<String> docs, int type, String text, int numHits,
                                      int set) {
             return sm.findName(id, text, docs, numHits, set, type);
         }
 
-        public int buildIndex(String filePath, List<String> text, double page, int maxPage) {
-            return SearchService.this.buildIndex(filePath, text, page, maxPage);
+        public int buildIndex(int id, String filePath, List<String> text, double page,
+                              int maxPage) {
+            return SearchService.this.buildIndex(id, filePath, text, page, maxPage);
         }
 
         public int load(String filePath) {
@@ -75,8 +77,12 @@ public class SearchService extends Service {
             return SearchService.this.unload(filePath);
         }
 
-        public boolean interrupt() {
-            return sm.interrupt();
+        public boolean interrupt(int id) {
+            return sm.interrupt(id);
+        }
+
+        public int getId(){
+            return ++currentId;
         }
     };
     private SearchManager sm;
@@ -113,7 +119,7 @@ public class SearchService extends Service {
      *			2 if the Service is still waiting for the rest of the pages
      *			-1 on error
      */
-    public int buildIndex(String filePath, List<String> text, double page,
+    public int buildIndex(int id, String filePath, List<String> text, double page,
                           int maxPage) {
         File indexDirFile = new File(FileIndexer.getRootStorageDir());
         File[] dirContents = indexDirFile.listFiles();
@@ -216,9 +222,9 @@ public class SearchService extends Service {
         /**
          *  Used to search for file names
          * @param   directory - A list containing directories to search
-         *          type - allows the client to specify how to filter the files
-         *          text - the search term
-         *          numHits - the maximum number of results to return
+         * @param   type - allows the client to specify how to filter the files
+         * @param   text - the search term
+         * @param   numHits - the maximum number of results to return
          */
         private List<String> findName(int id, String term, List<String> directory, int numHits,
                                       int set,
@@ -240,19 +246,14 @@ public class SearchService extends Service {
          * @return a list containing the terms found that matched the query and what page of the
          * document they appear on.
          */
-        private LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> findIn(int id, String
-                                                                                   term,
-                                                                                   List<String>
-                                                                                           documents, int numHits, int set,
-                                                                                   int type) {
+        private SearchResult findIn(int id, String term, List<String> documents, int numHits,
+                                    int set, int type) {
             return this.searcher.findInFiles(id, term, "text", documents, "path", numHits, set,
                     type);
         }
 
-        private LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> find(int id,
-                                                                                 String term,
-                                                                                 String constrainValue, int maxResults, int set,
-                                                                                 int type, int page) {
+        private SearchResult find(int id, String term, String constrainValue, int maxResults,
+                                  int set, int type, int page) {
             /**
              * TODO - Preload information about the index in the load function for use here
              * **/

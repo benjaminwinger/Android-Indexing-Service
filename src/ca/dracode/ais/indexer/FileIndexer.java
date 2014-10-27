@@ -1,21 +1,21 @@
-/*******************************************************************************
- * Copyright 2014 Benjamin Winger.
+/*
+ * Copyright 2014 Dracode Software.
  *
- * This file is part of Android Indexing Service.
+ * This file is part of AIS.
  *
- * Android Indexing Service is free software: you can redistribute it and/or modify
+ * AIS is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Android Indexing Service is distributed in the hope that it will be useful,
+ * AIS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
+ * along with AIS.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package ca.dracode.ais.indexer;
 
@@ -50,7 +50,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class FileIndexer {
-    private static String TAG = "ca.dracode.ais.androidindexer.FileIndexer";
+    private static final String TAG = "ca.dracode.ais.androidindexer.FileIndexer";
     private IndexWriter writer;
     private FileSearcher searcher;
 

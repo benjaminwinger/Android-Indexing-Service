@@ -54,6 +54,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import ca.dracode.ais.indexdata.SearchResult;
+
 /**
  * FileSearcher.java
  *
@@ -209,11 +211,10 @@ public class FileSearcher {
      * @param set The set number, e.g., searching set 0 returns the first n results,
      *            searching set 1 returns the 2nd n results. Set must be positive
      * @param type The type of the search, one of QUERY_BOOLEAN or QUERY_STANDARD
-     * @return A LinkedHashMap containing the files in which the term occurs,
-     * paired to a LinkedHashMap containing an (Integer page, String text) pair for each occurrence
-     * of the term, sorted by relevance
+     * @return A SearchResult containing the results sorted by relevance and page
      */
-    public LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> findInFiles(int id, String term, String field, List<String> constrainValues,
+    public SearchResult findInFiles(int id, String term, String field,
+                                     List<String> constrainValues,
                                                                                    String constrainField, int maxResults, int set, int type) {
         if(this.interrupt == id) {
             this.interrupt = -1;
@@ -266,11 +267,9 @@ public class FileSearcher {
      *            searching set 1 returns the 2nd n results. A negative set can be used to search
      *            backwards from a page.
      * @param type The type of the search, one of QUERY_BOOLEAN or QUERY_STANDARD
-     * @return A LinkedHashMap containing the files in which the term occurs,
-     * paired to a LinkedHashMap containing an (Integer page, String text) pair for each occurrence
-     * of the term, sorted by relevance
+     * @return A SearchResult containing the results sorted by relevance and page
      */
-    public LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> findInFile(int id, String term, String field, String constrainValue,
+    public SearchResult findInFile(int id, String term, String field, String constrainValue,
                                                                                   String constrainField, int maxResults, int set, int type,
                                                                                   final int page) {
         if(this.interrupt == id) {
@@ -333,7 +332,8 @@ public class FileSearcher {
             }
             if(hits != null) {
                 Log.i(TAG, "Found instance of term in " + hits.length + " documents");
-                return this.getHighlightedResults(this.getDocs(maxResults, set, hits), qry, type,
+                return this.getHighlightedResults(this.getDocs(maxResults, set, hits), qry,
+                        type,
                         term, maxResults);
             }
         } else {
@@ -407,11 +407,9 @@ public class FileSearcher {
      *             which gives highlighted fragments and the page on which they exist.
      * @param term The term that created the query
      * @param maxResults The maximum number of results that will be returned
-     * @return * @return A LinkedHashMap containing the files in which the term occurs,
-     * paired to a LinkedHashMap containing an (Integer page, String text) pair for each occurrence
-     * of the term, sorted by relevance
+     * @return A SearchResult containing the results sorted by relevance and page
      */
-    private LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> getHighlightedResults(List<Document> docs, Query qry, int type,
+    private SearchResult getHighlightedResults(List<Document> docs, Query qry, int type,
                                                                                               String term, int maxResults){
         try {
             int numResults = 0;
@@ -454,7 +452,7 @@ public class FileSearcher {
 
             }
             Log.i(TAG, "" + results.size());
-            return results;
+            return new SearchResult(results);
         } catch(Exception e) {
             Log.e("TAG", "Error while Highlighting", e);
             return null;

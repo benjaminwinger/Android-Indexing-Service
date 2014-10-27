@@ -1,21 +1,21 @@
-/*******************************************************************************
- * Copyright 2014 Benjamin Winger.
+/*
+ * Copyright 2014 Dracode Software.
  *
- * This file is part of Android Indexing Service.
+ * This file is part of AIS.
  *
- * Android Indexing Service is free software: you can redistribute it and/or modify
+ * AIS is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * Android Indexing Service is distributed in the hope that it will be useful,
+ * AIS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Android Indexing Service.  If not, see <http://www.gnu.org/licenses/>.
- ******************************************************************************/
+ * along with AIS.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package ca.dracode.ais.indexinfo;
 
@@ -33,6 +33,7 @@ import ca.dracode.ais.service.FileListener;
 public class IndexInfo {
     private static final String TAG = "ca.dracode.ais.indexinfo";
     private boolean enabled = true;
+    private boolean mIsBound = false;
     private IndexComm mService;
     private ServiceConnection mConnection = new ServiceConnection() {
         // Called when the connection with the service is established
@@ -46,6 +47,33 @@ public class IndexInfo {
             mService = null;
         }
     };
+
+    public IndexInfo(Context context){
+        this.doBindService(context);
+    }
+
+    public void close(Context context){
+        this.doUnbindService(context);
+    }
+
+    /**
+     * Connects the IndexInfo to the InfoProxy which is running in the indexer process
+     * @param context
+     */
+    private void doBindService(Context context) {
+    // Establish a connection with the service.
+        Log.i(TAG, "Binding to service...");
+        mIsBound = context.bindService(new Intent("ca.dracode.ais.service.InfoProxy.PROXY"),
+                mConnection,
+                Context.BIND_AUTO_CREATE);
+        Log.i(TAG, "Service is bound = " + mIsBound);
+    }
+
+    private void doUnbindService(Context context){
+        if(mIsBound) {
+            context.unbindService(mConnection);
+        }
+    }
 
     /**
      * Get Current State of the Indexer
@@ -81,9 +109,14 @@ public class IndexInfo {
      * @param context
      */
     public void stopIndexer(Context context) {
+        Log.i(TAG, "Stopping Indexer");
         Alarm.CancelAlarm(context);
         try {
-            mService.stopIndexer();
+            if(mService != null) {
+                Log.i(TAG, "Stopping Indexer...");
+                mService.stopIndexer();
+                Log.i(TAG, "Stopping Indexer...");
+            }
         } catch(RemoteException e) {
             Log.e(TAG, "Error", e);
         }

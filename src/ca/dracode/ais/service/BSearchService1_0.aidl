@@ -2,7 +2,7 @@
 
 package ca.dracode.ais.service;
 
-import ca.dracode.ais.indexdata.PageResult;
+import ca.dracode.ais.indexdata.SearchResult;
 
 /*
  * 	BSearchService1_0.aidl
@@ -34,7 +34,8 @@ interface BSearchService1_0 {
 	 *				 before this page they are pushed to the end of the returned list)
 	 * @return a list containing the terms found that matched the query and what page of the document they appear on.
 	 */
-	PageResult[] find(String doc, int type, String text, int numHits, int resultSet, int page);
+	SearchResult find(int id, String doc, int type, String text, int numHits, int resultSet,
+	int page);
 
     /**
      * Used to search the contents of multiple files
@@ -52,7 +53,8 @@ interface BSearchService1_0 {
      *               numHits - 1)). Ignored if numHits is -1
      * @return a list containing the terms found that matched the query and what page of the document they appear on.
      */
-    PageResult[] findIn(inout List<String> docs, int type, String text, int numHits, int resultSet);
+    SearchResult findIn(int id, inout List<String> docs, int type, String text, int numHits,
+    int resultSet);
 
     /**
      *  Used to search for file names
@@ -66,7 +68,7 @@ interface BSearchService1_0 {
      *              (numHits * resultSet) .. (lesser of (available hits) and (numHits * resultSet +
      *               numHits - 1)). Ignored if numHits is -1
     */
-	List<String> findName(inout List<String> docs, int type, String text, int numHits,
+	List<String> findName(int id, inout List<String> docs, int type, String text, int numHits,
 	int resultSet);
 	
 	/**
@@ -85,7 +87,7 @@ interface BSearchService1_0 {
 	 *			2 if the Service is still waiting for the rest of the pages
 	 *			-1 on error
 	 */
-	int buildIndex(String filePath, in List<String> text, double page, int maxPage);
+	int buildIndex(int id, String filePath, in List<String> text, double page, int maxPage);
 	
 	/**
 	 * Tells the indexer to load a file's metadata into memory for use in searches.
@@ -109,5 +111,11 @@ interface BSearchService1_0 {
 	/**
 	 *  Tells the search service to cancel any searches that are currently running
 	*/
-	boolean interrupt();
+	boolean interrupt(int id);
+
+	/**
+	 *  Returns a unique identifier for the instance of the IndexClient that will be passes to
+	 every other function
+	*/
+	int getId();
 }

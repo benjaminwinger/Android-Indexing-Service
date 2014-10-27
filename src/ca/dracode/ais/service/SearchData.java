@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Benjamin Winger.
+ * Copyright 2014 Dracode Software.
  *
  * This file is part of AIS.
  *

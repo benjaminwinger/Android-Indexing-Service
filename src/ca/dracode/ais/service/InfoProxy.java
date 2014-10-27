@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Benjamin Winger.
+ * Copyright 2014 Dracode Software.
  *
  * This file is part of AIS.
  *
@@ -24,6 +24,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Environment;
 import android.os.IBinder;
 
 import ca.dracode.ais.indexinfo.IndexComm;
@@ -42,7 +43,8 @@ public class InfoProxy extends Service {
             return false;
         }
 
-        public String getCurrentIndexPath(){ return "/sdcard";}
+        public String getCurrentIndexPath(){ return Environment.getExternalStorageDirectory()
+                .getPath();}
     };
 
     @Override
@@ -74,5 +76,11 @@ public class InfoProxy extends Service {
             unbindService(mListenerConnection);
             mIsListenerBound = false;
         }
+    }
+
+    @Override
+    public void onCreate(){
+        super.onCreate();
+        this.doBindService();
     }
 }
