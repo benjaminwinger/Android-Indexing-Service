@@ -77,10 +77,9 @@
             android:name="ca.dracode.ais.service.SearchService"
             android:exported="true"
             android:label="@string/app_name"
-            android:process=":search"
+            android:process=":index"
             android:permission="ca.dracode.permission.AIS_SEARCH">
             <intent-filter>
-                <action android:name="ca.drackde.ais.service.IndexService.SEARCH"/>
                 <action android:name="ca.dracode.ais.service.IndexService.SEARCH"/>
                 <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>

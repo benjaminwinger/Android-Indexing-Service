@@ -83,7 +83,7 @@ public class SearchResult implements Parcelable {
      */
     public LinkedHashMap<Integer, List<String>> getResultAtIndex(int index){
         if(this.results.size() > 0)
-            return (LinkedHashMap<Integer, List<String>>)this.results.entrySet().toArray()[index];
+            return (LinkedHashMap<Integer, List<String>>)(this.results.values().toArray()[index]);
         else return null;
     }
 

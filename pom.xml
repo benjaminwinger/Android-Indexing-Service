@@ -110,7 +110,6 @@
                                 </goals>
                                 <phase>package</phase>
                                 <inherited>true</inherited>
-
                                 <configuration>
                                     <keystore>
                                         my-release-key.keystore
@@ -141,7 +140,9 @@
                                 <outputApk>${project.build.directory}/${project.artifactId}-${project.version}-RELEASE.apk
                                 </outputApk>
                             </zipalign>
-
+                            <proguard>
+                                <skip>false</skip>
+                            </proguard>
                         </configuration>
                         <executions>
                             <execution>

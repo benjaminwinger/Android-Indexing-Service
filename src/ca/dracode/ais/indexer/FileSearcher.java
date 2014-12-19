@@ -272,11 +272,13 @@ public class FileSearcher {
     public SearchResult findInFile(int id, String term, String field, String constrainValue,
                                                                                   String constrainField, int maxResults, int set, int type,
                                                                                   final int page) {
+
+        Query qry = this.getQuery(term, field, type);
+        Log.i(TAG, "Query: " + term + " " + field + " " + type + " " + constrainValue);
         if(this.interrupt == id) {
             this.interrupt = -1;
             return null;
         }
-        Query qry = this.getQuery(term, field, type);
         if(qry != null){
             String[] values = {constrainValue};
             Filter filter;
@@ -301,8 +303,8 @@ public class FileSearcher {
                             filter = this.getFilter(constrainField, Arrays.asList(values), type, 0,
                                     page - 1);
                             hits = concat(hits, indexSearcher.search(qry, filter,
-                                    maxResults * set + maxResults -hits.length,
-                                    new Sort(new SortField("page", SortField.Type.INT))).scoreDocs);
+                                    maxResults,
+                                    sort).scoreDocs);
                         }
                     } else {
                         sort = new Sort(new SortField("page", SortField.Type.INT, true));
@@ -314,7 +316,7 @@ public class FileSearcher {
                             filter = this.getFilter(constrainField, Arrays.asList(values), type, page,
                                     Integer.MAX_VALUE);
                             hits = concat(hits, indexSearcher.search(qry, filter,
-                                    maxResults * -(set + 1) + maxResults - hits.length,
+                                    maxResults - hits.length,
                                     sort).scoreDocs);
                         } else {
                             ScoreDoc[] tmp = hits;
@@ -364,8 +366,18 @@ public class FileSearcher {
         Query qry = null;
         if(type == FileSearcher.QUERY_BOOLEAN) {
             qry = new BooleanQuery();
-            ((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + term + "*")),
+            String[] words = term.split(" ");
+            ((BooleanQuery) qry).add(new WildcardQuery(new Term(field, "*" + words[0])),
                     BooleanClause.Occur.MUST);
+            if(words.length > 1) {
+                for(int i = 1; i < words.length - 1; i++) {
+                    ((BooleanQuery) qry).add(new WildcardQuery(new Term(field, words[i])),
+                            BooleanClause.Occur.MUST);
+                }
+                ((BooleanQuery) qry).add(new WildcardQuery(new Term(field,
+                                words[words.length - 1] + "*")),
+                        BooleanClause.Occur.MUST);
+            }
         } else if(type == FileSearcher.QUERY_STANDARD) {
             try {
                 qry = new QueryParser(Version.LUCENE_47, field,
@@ -387,9 +399,14 @@ public class FileSearcher {
                              int type, int startPage,
                              int endPage){
         BooleanQuery cqry = new BooleanQuery();
-        for(String s : constrainValues) {
-            cqry.add(new TermQuery(new Term(constrainField, s)),
-                    BooleanClause.Occur.SHOULD);
+        if(constrainValues.size() == 1){
+            cqry.add(new TermQuery(new Term(constrainField, constrainValues.get(0))),
+                    BooleanClause.Occur.MUST);
+        } else {
+            for(String s : constrainValues) {
+                cqry.add(new TermQuery(new Term(constrainField, s)),
+                        BooleanClause.Occur.SHOULD);
+            }
         }
         if(type == FileSearcher.QUERY_BOOLEAN && startPage != -1 && endPage != -1) {
             cqry.add(NumericRangeQuery.newIntRange("page", startPage, endPage, true, true),
@@ -410,7 +427,7 @@ public class FileSearcher {
      * @return A SearchResult containing the results sorted by relevance and page
      */
     private SearchResult getHighlightedResults(List<Document> docs, Query qry, int type,
-                                                                                              String term, int maxResults){
+                                               String term, int maxResults){
         try {
             int numResults = 0;
             LinkedHashMap<String, LinkedHashMap<Integer, List<String>>> results = new LinkedHashMap<String, LinkedHashMap<Integer, List<String>>>();
@@ -469,9 +486,11 @@ public class FileSearcher {
      */
     private ArrayList<Document> getDocs(int maxResults, int set, ScoreDoc[] hits){
         ArrayList<Document> docs = new ArrayList<Document>();
-        if(set > 0) {
-            for(int i = maxResults * set; i < hits.length && i < (maxResults * set +
-                    maxResults);
+        int max = maxResults;
+        if(max > hits.length)max = hits.length;
+        Log.i(TAG, "Max: " + maxResults + " Set: " + set);
+        if(set >= 0) {
+            for(int i = 0; i < hits.length;
                 i++) {
                 try {
                     Document tmp = indexSearcher.doc(hits[i].doc);
@@ -481,8 +500,8 @@ public class FileSearcher {
                 }
             }
         } else {
-            for(int i = 0; i < hits.length && i < (maxResults * -(set + 1) +
-                    maxResults);
+            for(int i = 0; i < hits.length && i < (max * -(set + 1) +
+                    max);
                 i++) {
                 try {
                     Document tmp = indexSearcher.doc(hits[i].doc);
@@ -492,6 +511,7 @@ public class FileSearcher {
                 }
             }
         }
+        Log.i(TAG, "doc size" + docs.size());
         return docs;
     }
 

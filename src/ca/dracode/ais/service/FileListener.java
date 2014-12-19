@@ -130,7 +130,7 @@ public class FileListener extends Service {
                     }
                     // If a file was changed or created, re-index file or index the new file
                     mBoundService.createIndex(new File(Environment.getExternalStorageDirectory()
-                            .getAbsolutePath() + path));
+                            .getAbsolutePath() + path), null);
                     timerHandler.postDelayed(timerRunnable, DELAY);
                     Log.i(TAG, "File changed: " + path);
                 } else if(event == FileObserver.DELETE || event == FileObserver.MOVED_FROM) {

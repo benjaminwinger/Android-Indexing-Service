@@ -20,7 +20,10 @@
 package ca.dracode.ais.service;
 
 import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -32,7 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import ca.dracode.ais.indexdata.SearchResult;
-import ca.dracode.ais.indexer.FileIndexer;
 import ca.dracode.ais.indexer.FileSearcher;
 
 /**
@@ -45,9 +47,10 @@ import ca.dracode.ais.indexer.FileSearcher;
 // for single file searches (create new index in RAMDirectory and add appropriate documents in
 // the load function).
 
-public class SearchService extends Service {
+public class SearchService extends Service implements IndexService.IndexCallback {
     private static final String TAG = "ca.dracode.ais.service.SearchService";
     int currentId = 0;
+    HashMap<File, Integer> builtIndexes;
     private final BSearchService1_0.Stub mBinder = new BSearchService1_0.Stub() {
         public SearchResult find(int id, String doc, int type, String text, int numHits, int set,
                                  int page) {
@@ -64,9 +67,8 @@ public class SearchService extends Service {
             return sm.findName(id, text, docs, numHits, set, type);
         }
 
-        public int buildIndex(int id, String filePath, List<String> text, double page,
-                              int maxPage) {
-            return SearchService.this.buildIndex(id, filePath, text, page, maxPage);
+        public int buildIndex(int id, String filePath) {
+            return SearchService.this.buildIndex(id, filePath);
         }
 
         public int load(String filePath) {
@@ -85,7 +87,18 @@ public class SearchService extends Service {
             return ++currentId;
         }
     };
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            mBoundService = ((IndexService.LocalBinder) service).getService();
+        }
+
+        public void onServiceDisconnected(ComponentName className) {
+            mBoundService = null;
+        }
+    };
     private SearchManager sm;
+    private IndexService mBoundService;
+    private boolean mIsBound = false;
 
     // private final IBinder mBinder = new LocalBinder();
     private HashMap<String, SearchData> data;
@@ -100,56 +113,42 @@ public class SearchService extends Service {
         super.onCreate();
         this.sm = new SearchManager();
         this.data = new HashMap<String, SearchData>();
+        this.builtIndexes = new HashMap<File, Integer>();
+    }
+
+    private void doBindService() {
+        bindService(new Intent(SearchService.this,
+                IndexService.class), mConnection, Context.BIND_AUTO_CREATE);
+        mIsBound = true;
+    }
+
+    private void doUnbindService() {
+        if(mIsBound) {
+            // Detach our existing connection.
+            unbindService(mConnection);
+            mIsBound = false;
+        }
     }
 
     /**
-     * used to send file contents to the indexing service. Because of the limitations of
-     * the service communicsation system the information may have to be sent in chunks as
-     * there can only be a maximum of about 1MB in the buffer at a time (which is shared
-     * among all applications). The client class sends data in chunks that do not exceed 256KB,
-     * currently pages cannot exceed 256KB as the data transfer will fail
+     * Tells the indexer to try to build the given file
      * @param filePath - the location of the file to be built; used by the indexer to identify the file
-     * @param text - the text to be added to the index
-     * @param page - the page upon which the chunk of the file that is being transferred
-     *          starts.
-     *			It is a double to allow the transfer of parts of a single page if the page is too large
-     *			maxPage - the total number of pages in the entire file
      * @return 0 if index was built successfully;
      * 			1 if the file lock was in place due to another build operation being in progress;
      *			2 if the Service is still waiting for the rest of the pages
      *			-1 on error
      */
-    public int buildIndex(int id, String filePath, List<String> text, double page,
-                          int maxPage) {
-        File indexDirFile = new File(FileIndexer.getRootStorageDir());
-        File[] dirContents = indexDirFile.listFiles();
-        if(dirContents != null) {
-            for(File dirContent : dirContents) {
-                if(dirContent.getName().equals("write.lock")) {
-                    return 1;
-                }
-            }
+    public int buildIndex(int id, String filePath) {
+        if(!mIsBound){
+            doBindService();
         }
-        FileIndexer indexer = new FileIndexer();
-        SearchData tmpData = this.data.get(filePath);
-        if(page == 0) {
-            tmpData.text.clear();
+        while(!mIsBound){
+
         }
-        if(page + text.size() != maxPage) {
-            tmpData.text.addAll(text);
-        } else {
-            tmpData.text.addAll(text);
-            try {
-                indexer.buildIndex(tmpData.text, new File(filePath));
-            } catch(Exception ex) {
-                Log.v("PDFIndex", "" + ex.getMessage());
-                ex.printStackTrace();
-            } finally {
-                Log.i(TAG, "Built Index");
-            }
-            return 0;
-        }
-        return 2;
+        mBoundService.createIndex(new File(filePath), this);
+        mBoundService.stopWhenReady();
+        unbindService(mConnection);
+        return waitForIndexer(new File(filePath));
     }
 
     /**
@@ -172,7 +171,8 @@ public class SearchService extends Service {
             Log.e(TAG, "Searcher is null");
             return -1;
         }
-        if((tmp = this.sm.searcher.getMetaFile(filePath)) != null) {
+        Log.i(TAG, "Loading: " + filePath + " " + new File(filePath).getAbsolutePath());
+        if((tmp = this.sm.searcher.getMetaFile(new File(filePath).getAbsolutePath())) != null) {
             try {
                 IndexableField f = tmp.getField("pages");
                 if(f == null) {
@@ -223,7 +223,7 @@ public class SearchService extends Service {
          *  Used to search for file names
          * @param   directory - A list containing directories to search
          * @param   type - allows the client to specify how to filter the files
-         * @param   text - the search term
+         * @param   term - the search term
          * @param   numHits - the maximum number of results to return
          */
         private List<String> findName(int id, String term, List<String> directory, int numHits,
@@ -253,7 +253,7 @@ public class SearchService extends Service {
         }
 
         private SearchResult find(int id, String term, String constrainValue, int maxResults,
-                                  int set, int type, int page) {
+                                  int type, int set, int page) {
             /**
              * TODO - Preload information about the index in the load function for use here
              * **/
@@ -263,4 +263,18 @@ public class SearchService extends Service {
         }
     }
 
+    public int waitForIndexer(File content){
+        while(!this.builtIndexes.containsKey(content)){
+            try{
+                wait(5);
+            } catch(InterruptedException e){
+                Log.e(TAG, "Error", e);
+            }
+        }
+        return this.builtIndexes.get(content);
+    }
+
+    public void indexCreated(File content, int retval){
+        this.builtIndexes.put(content, retval);
+    }
 }

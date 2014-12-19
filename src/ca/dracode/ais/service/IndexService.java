@@ -123,7 +123,9 @@ public class IndexService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        this.crawl = intent.getBooleanExtra("crawl", false);
+        if(intent != null) {
+            this.crawl = intent.getBooleanExtra("crawl", false);
+        }
         if(this.crawl) {
             canStop = true;
             doneCrawling = false;
@@ -180,14 +182,19 @@ public class IndexService extends Service {
                     }
                     Indexable tmp = pIndexes.poll();
                     if(tmp != null) {
-                        Log.i(TAG, "Indexing: " + tmp.file.getAbsolutePath());
+                        //Log.i(TAG, "Indexing: " + tmp.file.getAbsolutePath());
                         if(tmp.tmpData == null || tmp.tmpData.size() == 0) {
                             indexer.buildIndex(tmp.file.getAbsolutePath(), -1);
                             tasks--;
                         } else {
                             try {
-                                indexer.buildIndex(tmp.tmpData,
-                                        tmp.file);
+                                if(tmp.callback != null) {
+                                    tmp.callback.indexCreated(tmp.file, indexer.buildIndex(tmp.tmpData,
+                                            tmp.file));
+                                } else {
+                                    indexer.buildIndex(tmp.tmpData,
+                                            tmp.file);
+                                }
                                 tasks--;
                             } catch(Exception e) {
                                 Log.e(TAG, "Error ", e);
@@ -260,7 +267,7 @@ public class IndexService extends Service {
                     }
                 }
                 if(content.canRead()) {
-                    createIndex(content);
+                    createIndex(content, null);
                 }
             }
             for(File content : contents) {
@@ -275,14 +282,17 @@ public class IndexService extends Service {
         }
     }
 
+    public interface IndexCallback{
+        public void indexCreated(File content, int retval);
+    }
+
     /**
      * calls for an index to be created for the given file
      * @param content The file to be stored in the index
      */
-    public void createIndex(File content) {
+    public void createIndex(File content, IndexCallback callback) {
         String serviceName = null;
         if(content.isFile()) {
-            int size = services.size();
             for(ParserService service : services) {
                 int mLoc = content.getName().lastIndexOf(".") + 1;
                 if(mLoc != 0) {
@@ -299,23 +309,23 @@ public class IndexService extends Service {
         try {
             int state = indexer.checkForIndex(content.getAbsolutePath() + ":meta", content.lastModified());
             if(state == 0) {
-                Log.i(TAG, "Found index for " + content.getName() + "; skipping.");
+                //Log.i(TAG, "Found index for " + content.getName() + "; skipping.");
             } else if(state == 1) {
-                Log.i(TAG, "Index for " + content.getName() + " out of date, building index");
+                //Log.i(TAG, "Index for " + content.getName() + " out of date, building index");
                 try {
                     new RemoteBuilder(
                             content,
-                            serviceName);
+                            serviceName, null);
                     tasks++;
                 } catch(Exception e) {
                     Log.e(TAG, "" + e.getMessage());
                 }
             } else if(state == -1) {
-                Log.i(TAG, "Index for " + content.getName() + " not found, building index");
+                //Log.i(TAG, "Index for " + content.getName() + " not found, building index");
                 try {
                     new RemoteBuilder(
                             content,
-                            serviceName);
+                            serviceName, null);
                     tasks++;
                 } catch(Exception e) {
                     Log.e(TAG, "" + e.getMessage());
@@ -376,15 +386,18 @@ public class IndexService extends Service {
         private IBinder mService;
         private String serviceName = null;
         private RemoteBuilder builder;
+        private IndexCallback callback;
 
         public Indexable(ArrayList<String> tmpData, File file,
-                         IBinder mService, String serviceName, RemoteBuilder builder) {
+                         IBinder mService, String serviceName, RemoteBuilder builder,
+                         IndexCallback callback) {
             super();
             this.tmpData = tmpData;
             this.file = file;
             this.mService = mService;
             this.serviceName = serviceName;
             this.builder = builder;
+            this.callback = callback;
         }
 
     }
@@ -394,15 +407,17 @@ public class IndexService extends Service {
         private File file;
         private IBinder mService;
         private String serviceName = null;
+        IndexCallback callback;
 
-        public RemoteBuilder(File file, String serviceName) {
+        public RemoteBuilder(File file, String serviceName, IndexCallback callback) {
             this.file = file;
             this.serviceName = serviceName;
+            this.callback = callback;
             if(serviceName != null) {
                 this.doBindService(getApplicationContext());
             } else {
                 pIndexes.add(new Indexable(null, file, null,
-                        null, RemoteBuilder.this));
+                        null, RemoteBuilder.this, callback));
             }
         }
 
@@ -450,16 +465,16 @@ public class IndexService extends Service {
                             .asInterface(mService);
                     tmp.loadFile(file.getAbsolutePath());
                     tmpData = new ArrayList<String>();
-                    int pages = tmp.getPageCount();
+                    int pages = tmp.getPageCount(file.getAbsolutePath());
                     for(int i = 0; i < pages; i++) {
-                        tmpData.add(tmp.getWordsForPage(i));
+                        tmpData.add(tmp.getWordsForPage(i, file.getAbsolutePath()));
                     }
                 } catch(RemoteException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, "error", e);
                 }
                 // build();
                 pIndexes.add(new Indexable(tmpData, file, mService,
-                        serviceName, RemoteBuilder.this));
+                        serviceName, RemoteBuilder.this, callback));
                 doUnbindService(getApplicationContext());
             }
 
@@ -478,5 +493,4 @@ public class IndexService extends Service {
             return IndexService.this;
         }
     }
-
 }

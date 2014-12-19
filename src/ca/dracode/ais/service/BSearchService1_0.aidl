@@ -72,22 +72,14 @@ interface BSearchService1_0 {
 	int resultSet);
 	
 	/**
-	 * used to send file contents to the indexing service. Because of the limitations of 
-	 * the service communicsation system the information may have to be sent in chunks as
-	 * there can only be a maximum of about 1MB in the buffer at a time (which is shared 
-	 * among all applications). The client class sends data in chunks that do not exceed 256KB,
-	 * currently pages cannot exceed 256KB as the data transfer will fail
+	 * Tells the indexer to try to build the given file
 	 * @param 	filePath - the location of the file to be built; used by the indexer to identify the file
-	 *			text - the text to be added to the index
-	 *			page - the page upon which the chunk of the file that is being transferred starts. 
-	 *					It is a double to allow the transfer of parts of a single page if the page is too large
-	 *			maxPage - the total number of pages in the entire file
 	 * @return 	0 if index was built successfully; 
 	 * 			1 if the file lock was in place due to another build operation being in progress;
 	 *			2 if the Service is still waiting for the rest of the pages
 	 *			-1 on error
 	 */
-	int buildIndex(int id, String filePath, in List<String> text, double page, int maxPage);
+	int buildIndex(int id, String filePath);
 	
 	/**
 	 * Tells the indexer to load a file's metadata into memory for use in searches.

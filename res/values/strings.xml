@@ -32,4 +32,5 @@
     <string name="ais_permission_desc">Allows the app to search content stored in the Lucene
         index created by the Android Indexing Service. All data stored in the index will be
         available to the service.</string>
+    <string name="ais_permission_title">Connect to AIS Indexer</string>
 </resources>

@@ -104,7 +104,7 @@ public class FileIndexer {
                     writer.updateDocument(new Term("id", file.getPath() + ":"
                             + page), doc);
                 }
-                //Log.i(TAG, "Done Indexing file: " + file.getName() + " " + page);
+                Log.i(TAG, "Done Indexing file: " + file.getName() + " " + page);
             } catch(Exception e) {
                 Log.e(TAG, "Error ", e);
             }
@@ -228,7 +228,7 @@ public class FileIndexer {
                 writer.updateDocument(new Term("id", file.getPath() + ":meta"),
                         doc);
             }
-            Log.i(TAG, "Done creating metadata for file " + filename);
+            //Log.i(TAG, "Done creating metadata for file " + filename);
             // Must only call ForceMerge and Commit once per document as they are very resource heavy operations
             writer.commit();
         } catch(Exception e) {
@@ -271,10 +271,12 @@ public class FileIndexer {
      */
     public void close() {
         try {
-            writer.commit();
-            // TODO - Determine how much of a speed increase is gained while searching after ForceMerge
-            writer.forceMerge(1);
-            writer.close();
+            if(writer != null) {
+                writer.commit();
+                // TODO - Determine how much of a speed increase is gained while searching after ForceMerge
+                writer.forceMerge(1);
+                writer.close();
+            }
         } catch(IOException e) {
             Log.e(TAG, "Error while closing indexwriter", e);
         }
