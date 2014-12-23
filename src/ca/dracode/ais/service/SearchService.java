@@ -142,13 +142,18 @@ public class SearchService extends Service implements IndexService.IndexCallback
         if(!mIsBound){
             doBindService();
         }
-        while(!mIsBound){
+        while(!mIsBound || mBoundService == null){
 
         }
-        mBoundService.createIndex(new File(filePath), this);
-        mBoundService.stopWhenReady();
-        unbindService(mConnection);
-        return waitForIndexer(new File(filePath));
+        try {
+            mBoundService.createIndex(new File(filePath), this);
+            mBoundService.stopWhenReady();
+            doUnbindService();
+            return waitForIndexer(new File(filePath));
+        } catch(Exception e){
+            Log.e(TAG, "Error: ", e);
+        }
+        return -1;
     }
 
     /**
@@ -266,7 +271,7 @@ public class SearchService extends Service implements IndexService.IndexCallback
     public int waitForIndexer(File content){
         while(!this.builtIndexes.containsKey(content)){
             try{
-                wait(5);
+                Thread.sleep(5);
             } catch(InterruptedException e){
                 Log.e(TAG, "Error", e);
             }

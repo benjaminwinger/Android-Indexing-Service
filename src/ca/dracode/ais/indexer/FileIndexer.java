@@ -50,7 +50,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class FileIndexer {
-    private static final String TAG = "ca.dracode.ais.androidindexer.FileIndexer";
+    private static final String TAG = "ca.dracode.ais.indexer.FileIndexer";
     private IndexWriter writer;
     private FileSearcher searcher;
 
@@ -222,6 +222,7 @@ public class FileIndexer {
             if(pages != -1) {
                 doc.add(new IntField("pages", pages, Field.Store.YES));
             }
+            Log.w(TAG, "" + writer);
             if(writer.getConfig().getOpenMode() == OpenMode.CREATE) {
                 writer.addDocument(doc);
             } else {
