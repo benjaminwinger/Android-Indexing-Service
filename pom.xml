@@ -5,7 +5,7 @@
   ~
   ~ AIS is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
-  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ the Free Software Foundation, either version 2 of the License, or
   ~ (at your option) any later version.
   ~
   ~ AIS is distributed in the hope that it will be useful,
@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>ca.dracode</groupId>
     <artifactId>ais</artifactId>
-    <version>0.6.1</version>
+    <version>0.7.0</version>
     <packaging>apk</packaging>
     <name>AndroidIndexingService</name>
     <dependencies>
@@ -32,6 +32,11 @@
             <artifactId>android</artifactId>
             <version>4.1.1.4</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>ca.dracode</groupId>
+            <artifactId>AISCL</artifactId>
+            <version>1.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>

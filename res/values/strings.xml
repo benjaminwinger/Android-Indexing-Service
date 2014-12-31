@@ -5,7 +5,7 @@
   ~
   ~ AIS is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
-  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ the Free Software Foundation, either version 2 of the License, or
   ~ (at your option) any later version.
   ~
   ~ AIS is distributed in the hope that it will be useful,
@@ -33,4 +33,6 @@
         index created by the Android Indexing Service. All data stored in the index will be
         available to the service.</string>
     <string name="ais_permission_title">Connect to AIS Indexer</string>
+    <string name="search_label">AIS</string>
+    <string name="search_prompt">Search Device Files</string>
 </resources>

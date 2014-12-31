@@ -5,7 +5,7 @@
  *
  * AIS is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
+ * the Free Software Foundation, either version 2 of the License, or
  * (at your option) any later version.
  *
  * AIS is distributed in the hope that it will be useful,
@@ -222,16 +222,16 @@ public class FileSearcher {
         }
         Query qry = this.getQuery(term, field, type);
         if(qry != null){
-            Filter filter = this.getFilter(constrainField, constrainValues, type, -1, -1);
+            //Filter filter = this.getFilter(constrainField, constrainValues, type, -1, -1);
             ScoreDoc[] hits = null;
             try {
                 if(type == QUERY_BOOLEAN){
                     Sort sort = new Sort(new SortField("path", SortField.Type.STRING),
                             new SortField("page", SortField.Type.INT));
-                    hits = indexSearcher.search(qry, filter, maxResults *
+                    hits = indexSearcher.search(qry, null, maxResults *
                             set + maxResults, sort).scoreDocs;
                 } else {
-                    hits = indexSearcher.search(qry, filter, maxResults *
+                    hits = indexSearcher.search(qry, null, maxResults *
                             set + maxResults).scoreDocs;
                 }
 
