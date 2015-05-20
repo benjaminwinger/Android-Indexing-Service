@@ -23,6 +23,7 @@ import android.app.Activity;
 import android.app.SearchManager;
 import android.content.Intent;
 import android.database.DataSetObserver;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Html;
 import android.util.Log;
@@ -30,11 +31,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.MimeTypeMap;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -60,6 +63,38 @@ public class MainActivity extends Activity implements IndexListener {
         this.resultView = (ExpandableListView)this.findViewById(R.id.list);
         this.result = new SearchResult();
         this.resultView.setAdapter(la);
+        this.resultView.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+            @Override
+            public boolean onChildClick(ExpandableListView expandableListView, View view,
+                                        int groupPosition, int childPosition, long id) {
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_VIEW);
+                LinkedHashMap<Integer, List<String>> data = result.getResultAtIndex(groupPosition);
+                int page = data.keySet().toArray(new Integer[0])[childPosition];
+                String term = ((List<String>)data.values().toArray()[childPosition]).get(0);
+                term = term.substring(term.indexOf("<B>"), term.lastIndexOf("</B>"));
+                term = term.replace("<B>", "").replace("</B>", "");
+                File f = new File(result.getFileNames().toArray(new String[0])[groupPosition]);
+                if(f.getName().contains(".")) {
+                    String extension = "";
+
+                    int i = f.getName().lastIndexOf('.');
+                    if (i > 0) {
+                        extension = f.getName().substring(i+1);
+                    }
+                    String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+                    intent.setDataAndType(Uri.fromFile(f), mime);
+                    intent.putExtra("page", page); // makes sure that the search goes forwards
+                    Log.i(TAG, "Requesting launch of " + f.getName() + " at page " + page + " " +
+                            "highlighting " + term);
+                    intent.putExtra("search", term);
+                    startActivity(intent);
+                } else {
+                    return false;
+                }
+                return true;
+            }
+        });
         setDefaultKeyMode(DEFAULT_KEYS_SEARCH_LOCAL);
         this.handleIntent(getIntent());
     }
@@ -230,7 +265,7 @@ public class MainActivity extends Activity implements IndexListener {
                 view = getLayoutInflater().inflate(R.layout.result_page, null);
             }
             TextView page = (TextView)view.findViewById(R.id.pagenum);
-            page.setText(child.getKey() + " ");
+            page.setText((child.getKey() + 1) + " ");
             TextView text = (TextView)view.findViewById(R.id.text);
             StringBuilder sb = new StringBuilder();
             for(String s : child.getValue()){
