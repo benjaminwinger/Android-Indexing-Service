@@ -26,6 +26,7 @@ package ca.dracode.ais.indexer;
  *  TODO - Evaluate the usefulness of ForceMerging as it increases total indexing time by about 17%
  */
 
+import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
 
@@ -54,11 +55,18 @@ public class FileIndexer {
     private IndexWriter writer;
     private FileSearcher searcher;
 
-    public FileIndexer() {
+    public FileIndexer(Context c) {
         super();
-        this.searcher = new FileSearcher();
+        this.searcher = new FileSearcher(c);
         Directory dir;
         try {
+            File lock = new File(FileIndexer.getRootStorageDir() + "/write.lock");
+            if(lock.exists()) {
+                lock.delete();
+                Log.e(TAG, "Lucene write lock exists when indexer isn't running, removing\n" +
+                        "WARNING, Index may be corrupted");
+                if(lock.exists()) Log.e(TAG, "What?? Lock didn't delete");
+            }
             dir = FSDirectory.open(new File(FileIndexer.getRootStorageDir()));
             Analyzer analyzer = new SimpleAnalyzer(Version.LUCENE_47);
             IndexWriterConfig iwc = new IndexWriterConfig(Version.LUCENE_47,
@@ -222,7 +230,6 @@ public class FileIndexer {
             if(pages != -1) {
                 doc.add(new IntField("pages", pages, Field.Store.YES));
             }
-            Log.w(TAG, "" + writer);
             if(writer.getConfig().getOpenMode() == OpenMode.CREATE) {
                 writer.addDocument(doc);
             } else {

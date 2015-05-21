@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import ca.dracode.ais.indexdata.SearchResult;
+import ca.dracode.ais.indexer.FileIndexer;
 import ca.dracode.ais.indexer.FileSearcher;
 
 /**
@@ -114,6 +115,25 @@ public class SearchService extends Service implements IndexService.IndexCallback
         this.sm = new SearchManager();
         this.data = new HashMap<String, SearchData>();
         this.builtIndexes = new HashMap<File, Integer>();
+        verifyIndex();
+    }
+
+    private void verifyIndex(){
+        File dir = new File(FileIndexer.getRootStorageDir());
+        if(!dir.exists()) {
+            dir.mkdirs();
+            if(mBoundService != null) mBoundService.crawl();
+            Log.i(TAG, "Index folder doesn't exist, creating...");
+        }
+        if(mBoundService != null && !mBoundService.isIndexing()){
+            File lock = new File(FileIndexer.getRootStorageDir() + "/write.lock");
+            if(lock.exists()) {
+                lock.delete();
+                Log.e(TAG, "Lucene write lock exists when indexer isn't running, removing\n" +
+                        "WARNING, Index may be corrupted");
+                if(lock.exists()) Log.e(TAG, "What?? Lock didn't delete");
+            }
+        }
     }
 
     private void doBindService() {
@@ -167,6 +187,7 @@ public class SearchService extends Service implements IndexService.IndexCallback
      *			-1 if there was an error
      */
     public int load(final String filePath) {
+        this.verifyIndex();
         if(this.data.containsKey(filePath)) {
             return 1;
         }
@@ -214,7 +235,7 @@ public class SearchService extends Service implements IndexService.IndexCallback
         private FileSearcher searcher;
 
         public SearchManager() {
-            this.searcher = new FileSearcher();
+            this.searcher = new FileSearcher(getApplicationContext());
         }
 
         /**

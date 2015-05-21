@@ -26,6 +26,7 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 import ca.dracode.ais.service.FileListener;
+import ca.dracode.ais.service.IndexService;
 
 public class AutoStart extends BroadcastReceiver {
 
@@ -40,6 +41,9 @@ public class AutoStart extends BroadcastReceiver {
         if(intent.getAction().equals("android.intent.action.BOOT_COMPLETED") && prefs.getBoolean("enabled", true)) {
             Alarm.SetAlarm(context);
             Intent serviceIntent = new Intent(context, FileListener.class);
+            context.startService(serviceIntent);
+            serviceIntent = new Intent(context, IndexService.class);
+            serviceIntent.putExtra("crawl", true);
             context.startService(serviceIntent);
         }
     }

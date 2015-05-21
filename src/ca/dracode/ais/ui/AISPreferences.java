@@ -54,8 +54,8 @@ public class AISPreferences extends PreferenceActivity {
 
     @Override
     public void onDestroy(){
-        super.onDestroy();
         if(indexInfo != null)
-        indexInfo.close(this);
+            indexInfo.close(this);
+        super.onDestroy();
     }
 }

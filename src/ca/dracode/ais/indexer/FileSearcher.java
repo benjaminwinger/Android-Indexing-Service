@@ -19,6 +19,8 @@
 
 package ca.dracode.ais.indexer;
 
+import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
@@ -54,6 +56,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import ca.dracode.ais.alarm.AutoStart;
 import ca.dracode.ais.indexdata.SearchResult;
 
 /**
@@ -85,7 +88,7 @@ public class FileSearcher {
     private IndexSearcher indexSearcher;
     private int interrupt = -1;
 
-    public FileSearcher() {
+    public FileSearcher(Context c) {
         IndexReader indexReader;
         IndexSearcher indexSearcher = null;
         try {

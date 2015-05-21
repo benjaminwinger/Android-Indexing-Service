@@ -167,7 +167,7 @@ public class IndexService extends Service {
             return;
         }
         Log.i(TAG, "Creating Indexer");
-        this.indexer = new FileIndexer();
+        this.indexer = new FileIndexer(getApplicationContext());
         Log.i(TAG, "Created Indexer");
         this.pIndexes = new LinkedList<Indexable>();
         this.doneCrawling = true;
@@ -492,5 +492,9 @@ public class IndexService extends Service {
         IndexService getService() {
             return IndexService.this;
         }
+    }
+
+    public boolean isIndexing(){
+        return tasks != 0;
     }
 }
